@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-enum ThemeType { barbie, summer, winter, nighttime, galaxy, classic, plant, natural, minimalist, ocean, picnic, sunset }
+enum ThemeType { barbie, summer, winter, nighttime, galaxy, classic, plant, natural, minimalist, ocean, picnic, sunset, midnight }
 
 class GameTheme {
   final String name;
@@ -148,6 +148,17 @@ class GameTheme {
           playerOColor: const Color(0xFFFFD180), // Vibrant Light Orange
           accentColor: const Color(0xFFFF4081),
           textStyle: GoogleFonts.orbitron(),
+        );
+      case ThemeType.midnight:
+        return GameTheme(
+          name: 'Midnight',
+          background: const Color(0xFF000000),
+          secondaryBackground: const Color(0xFF1A1A1A),
+          gridColor: Colors.white10,
+          playerXColor: Colors.white,
+          playerOColor: Colors.redAccent,
+          accentColor: Colors.white,
+          textStyle: GoogleFonts.inter(),
         );
       case ThemeType.classic:
       default:

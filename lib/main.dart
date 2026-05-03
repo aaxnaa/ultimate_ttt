@@ -67,13 +67,7 @@ class UltimateTTTApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         scaffoldBackgroundColor: theme.background,
-        textTheme: GoogleFonts.getTextTheme(
-          theme.textStyle.fontFamily!,
-          ThemeData.dark().textTheme,
-        ).apply(
-          bodyColor: theme.contrastColor,
-          displayColor: theme.contrastColor,
-        ),
+        primaryColor: theme.accentColor,
       ),
       home: const HomeScreen(),
     );
@@ -98,6 +92,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = GameTheme.getTheme(appState.currentThemeType);
     final net = context.watch<NetworkManager>();
 
+    TextStyle baseStyle = GoogleFonts.getFont(theme.textStyle.fontFamily!, color: theme.contrastColor);
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -121,30 +117,30 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           const SizedBox(height: 20),
                           Text("ULTIMATE\nTIC-TAC-TOE", 
-                            style: theme.textStyle.copyWith(fontSize: 32, fontWeight: FontWeight.bold, color: theme.playerXColor)),
+                            style: baseStyle.copyWith(fontSize: 32, fontWeight: FontWeight.bold, color: theme.playerXColor)),
                           const SizedBox(height: 20),
                           
                           TextField(
                             controller: _p1Controller,
                             decoration: InputDecoration(
                               labelText: "Player 1 (X)", 
-                              labelStyle: TextStyle(color: theme.playerXColor.withOpacity(0.8)),
+                              labelStyle: baseStyle.copyWith(fontSize: 14, color: theme.playerXColor.withOpacity(0.8)),
                               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme.contrastColor.withOpacity(0.3))),
                             ),
-                            style: TextStyle(color: theme.contrastColor),
+                            style: baseStyle,
                           ),
                           TextField(
                             controller: _p2Controller,
                             decoration: InputDecoration(
                               labelText: "Player 2 (O)", 
-                              labelStyle: TextStyle(color: theme.playerOColor.withOpacity(0.8)),
+                              labelStyle: baseStyle.copyWith(fontSize: 14, color: theme.playerOColor.withOpacity(0.8)),
                               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme.contrastColor.withOpacity(0.3))),
                             ),
-                            style: TextStyle(color: theme.contrastColor),
+                            style: baseStyle,
                           ),
                           
                           const SizedBox(height: 20),
-                          Text("Select Theme:", style: theme.textStyle.copyWith(color: theme.contrastColor)),
+                          Text("Select Theme:", style: baseStyle),
                           const SizedBox(height: 10),
                           SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
@@ -173,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                     ),
                                     const SizedBox(height: 4),
-                                    Text(t.name.toUpperCase(), style: TextStyle(fontSize: 10, color: theme.contrastColor.withOpacity(0.6))),
+                                    Text(t.name.toUpperCase(), style: baseStyle.copyWith(fontSize: 10, color: theme.contrastColor.withOpacity(0.6))),
                                   ],
                                 ),
                               )).toList(),
@@ -317,6 +313,7 @@ class GameScreen extends StatelessWidget {
 
     String turnText = engine.currentPlayer == "X" ? appState.player1Name : appState.player2Name;
     Color turnColor = engine.currentPlayer == "X" ? theme.playerXColor : theme.playerOColor;
+    TextStyle baseStyle = GoogleFonts.getFont(theme.textStyle.fontFamily!, color: theme.contrastColor);
 
     return Scaffold(
       body: Container(
@@ -368,7 +365,7 @@ class GameScreen extends StatelessWidget {
                                         borderRadius: BorderRadius.circular(2),
                                       ),
                                       child: Center(
-                                        child: Text(win == "T" ? "T" : win, style: TextStyle(
+                                        child: Text(win == "T" ? "T" : win, style: baseStyle.copyWith(
                                           color: win == "X" ? theme.playerXColor : (win == "O" ? theme.playerOColor : theme.contrastColor.withOpacity(0.3)),
                                           fontWeight: FontWeight.bold, fontSize: 8)),
                                       ),
@@ -399,7 +396,7 @@ class GameScreen extends StatelessWidget {
                                   } else {
                                     net.sendData({"type": "RESTART_REQUEST"});
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text("Restart request sent..."))
+                                      SnackBar(content: Text("Restart request sent...", style: baseStyle.copyWith(color: Colors.white)))
                                     );
                                   }
                                 }, icon: Icon(Icons.refresh, color: theme.contrastColor, size: 20)),
@@ -413,7 +410,7 @@ class GameScreen extends StatelessWidget {
                       Expanded(
                         child: Center(
                           child: Padding(
-                            padding: const EdgeInsets.all(16.0),
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
                             child: FittedBox(
                               fit: BoxFit.contain,
                               child: SizedBox(
@@ -442,15 +439,15 @@ class GameScreen extends StatelessWidget {
                           children: [
                             if (engine.winner != null)
                               Text(engine.winner == "DRAW" ? "GAME ENDED IN A DRAW!" : "WINNER: ${engine.winner == "X" ? appState.player1Name : appState.player2Name}!", 
-                                style: theme.textStyle.copyWith(fontSize: 24, color: turnColor, fontWeight: FontWeight.bold))
+                                style: baseStyle.copyWith(fontSize: 24, color: turnColor, fontWeight: FontWeight.bold))
                             else
                               Column(
                                 children: [
                                   Text("${turnText.toUpperCase()}'S TURN", 
-                                    style: theme.textStyle.copyWith(fontSize: 18, color: turnColor, fontWeight: FontWeight.w900)),
+                                    style: baseStyle.copyWith(fontSize: 18, color: turnColor, fontWeight: FontWeight.w900)),
                                   const SizedBox(height: 4),
                                   Text((appState.isLocalPlay || engine.currentPlayer == appState.myPlayerSymbol) ? "GO" : "WAIT", 
-                                    style: theme.textStyle.copyWith(fontSize: 14, color: turnColor.withOpacity(0.7), letterSpacing: 4, fontWeight: FontWeight.bold)),
+                                    style: baseStyle.copyWith(fontSize: 14, color: turnColor.withOpacity(0.7), letterSpacing: 4, fontWeight: FontWeight.bold)),
                                 ],
                               ),
                           ],
