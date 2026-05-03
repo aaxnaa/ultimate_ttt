@@ -4,7 +4,7 @@
   <base href="/ultimate_ttt/">
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <title>Ultimate TTT</title>
   <style>
@@ -13,19 +13,6 @@
 </head>
 <body>
   <div id="loading">LAUNCHING ULTIMATE TTT...</div>
-  <script src="flutter.js" defer></script>
-  <script>
-    window.addEventListener('load', function(ev) {
-      _flutter.loader.load({
-        onEntrypointLoaded: function(engineInitializer) {
-          engineInitializer.initializeEngine({
-            renderer: "html",
-          }).then(function(appRunner) {
-            appRunner.runApp();
-          });
-        }
-      });
-    });
-  </script>
+  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
