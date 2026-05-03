@@ -32,7 +32,7 @@ class NetworkManager extends ChangeNotifier {
     try {
       await client!.connect();
     } catch (e) {
-      print('MQTT Connection failed: $e');
+      debugPrint('MQTT Connection failed: $e');
       disconnect();
     }
   }

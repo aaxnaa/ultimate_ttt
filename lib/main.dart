@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'game_engine.dart';
 import 'theme_engine.dart';
 import 'network_manager.dart';
+import 'bot_engine.dart';
 
 void main() {
   runApp(
@@ -25,8 +26,10 @@ class AppState extends ChangeNotifier {
   bool showScoreboard = true;
   bool analyzeMode = false;
   bool isLocalPlay = false;
+  bool isAiMode = false;
   bool showWonOverlays = true;
   String lastDebugMessage = "V2.0.1 READY";
+  BotEngine? botEngine;
 
   void updateTheme(ThemeType type) {
     currentThemeType = type;
@@ -56,7 +59,18 @@ class AppState extends ChangeNotifier {
 
   void startLocalPlay() {
     isLocalPlay = true;
+    isAiMode = false;
     myPlayerSymbol = "X";
+    botEngine = null;
+    notifyListeners();
+  }
+
+  void startAiPlay(UltimateTTTEngine engine, BotDifficulty difficulty) {
+    isLocalPlay = false;
+    isAiMode = true;
+    myPlayerSymbol = "X";
+    player2Name = "Bot (${difficulty.name})";
+    botEngine = BotEngine(engine: engine, difficulty: difficulty, botSymbol: "O");
     notifyListeners();
   }
 
@@ -153,6 +167,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
                 },
                 child: const Text("LOCAL PASS & PLAY", style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(height: 15),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.contrastColor.withOpacity(0.1),
+                  foregroundColor: theme.contrastColor,
+                  minimumSize: const Size(double.infinity, 55),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  side: BorderSide(color: theme.accentColor.withOpacity(0.5), width: 1),
+                ),
+                onPressed: () => _showAiDifficultyDialog(context, theme),
+                child: const Text("PLAY VS COMPUTER", style: TextStyle(fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 15),
               Row(
@@ -269,6 +295,43 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showAiDifficultyDialog(BuildContext context, GameTheme theme) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text("Select Difficulty", style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildDifficultyOption(context, BotDifficulty.easy, "EASY", "Random moves", theme),
+            const SizedBox(height: 10),
+            _buildDifficultyOption(context, BotDifficulty.medium, "MEDIUM", "Smart blocks", theme),
+            const SizedBox(height: 10),
+            _buildDifficultyOption(context, BotDifficulty.hard, "HARD", "Strategic AI", theme),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDifficultyOption(BuildContext context, BotDifficulty difficulty, String label, String sub, GameTheme theme) {
+    return ListTile(
+      onTap: () {
+        final appState = Provider.of<AppState>(context, listen: false);
+        final engine = Provider.of<UltimateTTTEngine>(context, listen: false);
+        appState.updateNames(_p1.text, "");
+        appState.startAiPlay(engine, difficulty);
+        Navigator.pop(context);
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
+      },
+      title: Text(label, style: TextStyle(color: theme.accentColor, fontWeight: FontWeight.bold)),
+      subtitle: Text(sub, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+      trailing: const Icon(Icons.chevron_right, color: Colors.white24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: const BorderSide(color: Colors.white10)),
+    );
+  }
+
   void _showPinDialog(BuildContext context, bool isHost) {
     showDialog(
       context: context,
@@ -326,12 +389,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   
                   if (data["board"] != null) {
                     List<dynamic> bRaw = data["board"];
-                    engine.board = bRaw.map((r) => (r as List<dynamic>).map((c) => c.toString()).toList()).toList();
+                    List<List<String>> newBoard = bRaw.map((r) => (r as List<dynamic>).map((c) => c.toString()).toList()).toList();
                     List<dynamic> mwRaw = data["miniWins"];
-                    engine.miniWins = mwRaw.map((e) => e.toString()).toList();
-                    engine.activeMiniGrid = data["activeMiniGrid"];
-                    engine.currentPlayer = data["currentPlayer"] ?? "X";
-                    engine.notifyListeners();
+                    List<String> newMiniWins = mwRaw.map((e) => e.toString()).toList();
+                    
+                    engine.syncState(
+                      newBoard: newBoard,
+                      newMiniWins: newMiniWins,
+                      newActiveMiniGrid: data["activeMiniGrid"],
+                      newCurrentPlayer: data["currentPlayer"] ?? "X",
+                    );
                   }
 
                   if (Navigator.canPop(context)) {
@@ -498,8 +565,34 @@ class LobbyScreen extends StatelessWidget {
   }
 }
 
-class GameScreen extends StatelessWidget {
+class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
+
+  @override
+  State<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<GameScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final engine = Provider.of<UltimateTTTEngine>(context, listen: false);
+      engine.addListener(_handleAiMove);
+    });
+  }
+
+  void _handleAiMove() {
+    final appState = Provider.of<AppState>(context, listen: false);
+    if (appState.isAiMode && appState.botEngine != null) {
+      appState.botEngine!.makeMove();
+    }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -555,7 +648,11 @@ class GameScreen extends StatelessWidget {
                             IconButton(onPressed: () => appState.toggleAnalyzeMode(), icon: Icon(appState.analyzeMode ? Icons.visibility : Icons.visibility_off, color: appState.analyzeMode ? theme.accentColor : theme.contrastColor, size: 28)),
                             IconButton(onPressed: () => appState.toggleScoreboard(), icon: Icon(appState.showScoreboard ? Icons.grid_view : Icons.grid_off, color: theme.accentColor, size: 24)),
                             IconButton(onPressed: () {
-                              if (appState.isLocalPlay) engine.reset(); else net.sendData({"type": "RESTART_REQUEST"});
+                              if (appState.isLocalPlay || appState.isAiMode) {
+                                engine.reset();
+                              } else {
+                                net.sendData({"type": "RESTART_REQUEST"});
+                              }
                             }, icon: Icon(Icons.refresh, color: theme.contrastColor, size: 28)),
                           ],
                         ),
@@ -604,7 +701,7 @@ class GameScreen extends StatelessWidget {
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(backgroundColor: theme.accentColor, padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15)),
                             onPressed: () {
-                              if (appState.isLocalPlay) {
+                              if (appState.isLocalPlay || appState.isAiMode) {
                                 engine.reset();
                               } else {
                                 net.sendData({"type": "RESTART_REQUEST"});
@@ -647,14 +744,14 @@ class GameScreen extends StatelessWidget {
               content: "This square ended in a tie. End the whole game in a draw?",
               actions: [
                 TextButton(onPressed: () {
-                  engine.castDrawVote(false, true, appState.isLocalPlay);
-                  if (!appState.isLocalPlay) net.sendData({"type": "DRAW_VOTE", "vote": false});
+                  engine.castDrawVote(false, true, appState.isLocalPlay || appState.isAiMode);
+                  if (!appState.isLocalPlay && !appState.isAiMode) net.sendData({"type": "DRAW_VOTE", "vote": false});
                 }, child: const Text("CONTINUE")),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: theme.accentColor),
                   onPressed: () {
-                    engine.castDrawVote(true, true, appState.isLocalPlay);
-                    if (!appState.isLocalPlay) net.sendData({"type": "DRAW_VOTE", "vote": true});
+                    engine.castDrawVote(true, true, appState.isLocalPlay || appState.isAiMode);
+                    if (!appState.isLocalPlay && !appState.isAiMode) net.sendData({"type": "DRAW_VOTE", "vote": true});
                   }, 
                   child: const Text("END IN DRAW", style: TextStyle(color: Colors.white))),
               ],
@@ -739,11 +836,14 @@ class MiniBoardWidget extends StatelessWidget {
               return GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () {
-                  if (appState.isLocalPlay || engine.currentPlayer == appState.myPlayerSymbol) {
+                  if (appState.isLocalPlay || appState.isAiMode || engine.currentPlayer == appState.myPlayerSymbol) {
+                    // In AI mode, we only allow moves if it's NOT the bot's turn
+                    if (appState.isAiMode && engine.currentPlayer == appState.botEngine?.botSymbol) return;
+
                     bool isValid = engine.canMove(subGridIdx, sqIdx);
                     if (isValid) {
                       engine.makeMove(subGridIdx, sqIdx);
-                      if (!appState.isLocalPlay) {
+                      if (!appState.isLocalPlay && !appState.isAiMode) {
                         Provider.of<NetworkManager>(context, listen: false).sendData({"type": "MOVE", "subGrid": subGridIdx, "square": sqIdx});
                       }
                     } else {

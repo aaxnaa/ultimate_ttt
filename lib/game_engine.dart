@@ -79,7 +79,11 @@ class UltimateTTTEngine extends ChangeNotifier {
       myDrawVote = vote;
       opponentDrawVote = vote;
     } else {
-      if (isMe) myDrawVote = vote; else opponentDrawVote = vote;
+      if (isMe) {
+        myDrawVote = vote;
+      } else {
+        opponentDrawVote = vote;
+      }
     }
 
     if (myDrawVote != null && opponentDrawVote != null) {
@@ -87,12 +91,24 @@ class UltimateTTTEngine extends ChangeNotifier {
         miniWins[tiedGridIndex!] = "T";
         _checkUltimateWin(); // A tie might fill the last spot, causing a global draw
       } else {
-         miniWins[tiedGridIndex!] = ""; // Revert if they want to keep playing
-         // Though if it's full, they can't play there anyway. We leave it as a "dead" grid without a T.
+        miniWins[tiedGridIndex!] = ""; // Revert if they want to keep playing
       }
       pendingDrawVote = false;
       tiedGridIndex = null;
     }
+    notifyListeners();
+  }
+
+  void syncState({
+    required List<List<String>> newBoard,
+    required List<String> newMiniWins,
+    required int? newActiveMiniGrid,
+    required String newCurrentPlayer,
+  }) {
+    board = newBoard;
+    miniWins = newMiniWins;
+    activeMiniGrid = newActiveMiniGrid;
+    currentPlayer = newCurrentPlayer;
     notifyListeners();
   }
 
