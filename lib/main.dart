@@ -402,15 +402,24 @@ class GameScreen extends StatelessWidget {
                         padding: const EdgeInsets.all(20),
                         child: AspectRatio(
                           aspectRatio: 1,
-                          child: GridView.builder(
-                            physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 14, mainAxisSpacing: 14),
-                            itemCount: 9,
-                            itemBuilder: (context, idx) {
-                              bool isActive = appState.analyzeMode ? false : (engine.activeMiniGrid == null || engine.activeMiniGrid == idx);
-                              bool isBolded = appState.analyzeMode && (engine.activeMiniGrid == null || engine.activeMiniGrid == idx);
-                              return MiniBoardWidget(subGridIdx: idx, isActive: isActive, isBolded: isBolded);
-                            },
+                          child: Stack(
+                            children: [
+                              GridView.builder(
+                                physics: const NeverScrollableScrollPhysics(),
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 14, mainAxisSpacing: 14),
+                                itemCount: 9,
+                                itemBuilder: (context, idx) {
+                                  bool isActive = appState.analyzeMode ? false : (engine.activeMiniGrid == null || engine.activeMiniGrid == idx);
+                                  bool isBolded = appState.analyzeMode && (engine.activeMiniGrid == null || engine.activeMiniGrid == idx);
+                                  return MiniBoardWidget(subGridIdx: idx, isActive: isActive, isBolded: isBolded);
+                                },
+                              ),
+                              if (engine.winningLine != null)
+                                CustomPaint(
+                                  size: Size.infinite,
+                                  painter: WinningLinePainter(engine.winningLine!, engine.winner == "X" ? theme.playerXColor : theme.playerOColor),
+                                ),
+                            ],
                           ),
                         ),
                       ),
@@ -420,10 +429,25 @@ class GameScreen extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 40, top: 20),
                     child: Column(
                       children: [
-                        Text("${turnText.toUpperCase()}'S TURN - ${appState.isLocalPlay || engine.currentPlayer == appState.myPlayerSymbol ? 'GO' : 'WAIT'}", 
-                          style: TextStyle(color: turnColor, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 2)),
-                        const SizedBox(height: 8),
-                        Text(appState.lastDebugMessage, style: TextStyle(color: theme.contrastColor.withOpacity(0.3), fontSize: 9, fontWeight: FontWeight.bold)),
+                        if (engine.winner == null) ...[
+                          Text("${turnText.toUpperCase()}'S TURN - ${appState.isLocalPlay || engine.currentPlayer == appState.myPlayerSymbol ? 'GO' : 'WAIT'}", 
+                            style: TextStyle(color: turnColor, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 2)),
+                          const SizedBox(height: 8),
+                          Text(appState.lastDebugMessage, style: TextStyle(color: theme.contrastColor.withOpacity(0.3), fontSize: 9, fontWeight: FontWeight.bold)),
+                        ] else ...[
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: theme.accentColor, padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15)),
+                            onPressed: () {
+                              if (appState.isLocalPlay) {
+                                engine.reset();
+                              } else {
+                                net.sendData({"type": "RESTART_REQUEST"});
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Restart request sent...")));
+                              }
+                            },
+                            child: const Text("PLAY AGAIN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -431,6 +455,26 @@ class GameScreen extends StatelessWidget {
               ),
             ),
           ),
+
+          // ULTIMATE WIN SCREEN OVERLAY
+          if (engine.winner != null)
+            IgnorePointer(
+              child: Container(
+                color: Colors.black87,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(engine.winner == "DRAW" ? "IT'S A DRAW!" : "ULTIMATE WINNER", style: TextStyle(color: theme.contrastColor, fontSize: 20, letterSpacing: 5, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 20),
+                      if (engine.winner != "DRAW")
+                        Text(engine.winner == "X" ? appState.player1Name.toUpperCase() : appState.player2Name.toUpperCase(), 
+                          style: TextStyle(color: engine.winner == "X" ? theme.playerXColor : theme.playerOColor, fontSize: 60, fontWeight: FontWeight.w900, letterSpacing: 5, shadows: [Shadow(color: (engine.winner == "X" ? theme.playerXColor : theme.playerOColor).withOpacity(0.5), blurRadius: 20)])),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           if (engine.pendingDrawVote && engine.myDrawVote == null)
             _buildDialogOverlay(
               context,
@@ -498,6 +542,42 @@ class GameScreen extends StatelessWidget {
   }
 }
 
+class WinningLinePainter extends CustomPainter {
+  final List<int> winningLine;
+  final Color color;
+
+  WinningLinePainter(this.winningLine, this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke
+      ..maskFilter = const MaskFilter.blur(BlurStyle.solid, 5);
+
+    // Calculate center points of the winning grids
+    double getX(int idx) => (idx % 3) * (size.width / 3) + (size.width / 6);
+    double getY(int idx) => (idx ~/ 3) * (size.height / 3) + (size.height / 6);
+
+    Offset start = Offset(getX(winningLine[0]), getY(winningLine[0]));
+    Offset end = Offset(getX(winningLine[2]), getY(winningLine[2]));
+
+    // Extend the line slightly past the centers
+    Offset direction = end - start;
+    double extension = 40.0; // Extend by 40 pixels
+    direction = direction / direction.distance;
+    
+    start -= direction * extension;
+    end += direction * extension;
+
+    canvas.drawLine(start, end, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
 class MiniBoardWidget extends StatelessWidget {
   final int subGridIdx;
   final bool isActive;

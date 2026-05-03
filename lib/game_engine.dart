@@ -6,6 +6,7 @@ class UltimateTTTEngine extends ChangeNotifier {
   int? activeMiniGrid;
   String currentPlayer = "X";
   String? winner;
+  List<int>? winningLine; // Stores the indices of the winning grids
 
   bool pendingDrawVote = false;
   int? tiedGridIndex;
@@ -34,8 +35,7 @@ class UltimateTTTEngine extends ChangeNotifier {
       String subWin = _checkWin(board[subGridIndex]);
       if (subWin != "") {
         miniWins[subGridIndex] = subWin;
-        String gameWin = _checkWin(miniWins);
-        if (gameWin != "") winner = gameWin;
+        _checkUltimateWin();
       } else if (_isGridFull(board[subGridIndex])) {
         miniWins[subGridIndex] = "T";
         pendingDrawVote = true;
@@ -45,20 +45,37 @@ class UltimateTTTEngine extends ChangeNotifier {
       }
     }
 
-    int nextGrid = squareIndex;
-    if (_isGridFull(board[nextGrid])) {
-      activeMiniGrid = null;
-    } else {
-      activeMiniGrid = nextGrid;
+    if (winner == null) {
+      int nextGrid = squareIndex;
+      if (_isGridFull(board[nextGrid]) || miniWins[nextGrid] != "") {
+         activeMiniGrid = null; // Free move if target is won or full
+      } else {
+        activeMiniGrid = nextGrid;
+      }
+      currentPlayer = (currentPlayer == "X") ? "O" : "X";
     }
-
-    currentPlayer = (currentPlayer == "X") ? "O" : "X";
+    
     notifyListeners();
+  }
+
+  void _checkUltimateWin() {
+    const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    for (var w in wins) {
+      if (miniWins[w[0]] != "" && miniWins[w[0]] != "T" && miniWins[w[0]] == miniWins[w[1]] && miniWins[w[0]] == miniWins[w[2]]) {
+        winner = miniWins[w[0]];
+        winningLine = w;
+        return;
+      }
+    }
+    
+    // Check for a global tie (all grids are won or tied)
+    if (!miniWins.contains("")) {
+      winner = "DRAW";
+    }
   }
 
   void castDrawVote(bool vote, bool isMe, bool isLocal) {
     if (isLocal) {
-      // In local play, one click decides for both to avoid freezing
       myDrawVote = vote;
       opponentDrawVote = vote;
     } else {
@@ -67,7 +84,11 @@ class UltimateTTTEngine extends ChangeNotifier {
 
     if (myDrawVote != null && opponentDrawVote != null) {
       if (myDrawVote! && opponentDrawVote!) {
-        winner = "DRAW";
+        miniWins[tiedGridIndex!] = "T";
+        _checkUltimateWin(); // A tie might fill the last spot, causing a global draw
+      } else {
+         miniWins[tiedGridIndex!] = ""; // Revert if they want to keep playing
+         // Though if it's full, they can't play there anyway. We leave it as a "dead" grid without a T.
       }
       pendingDrawVote = false;
       tiedGridIndex = null;
@@ -91,6 +112,7 @@ class UltimateTTTEngine extends ChangeNotifier {
     activeMiniGrid = null;
     currentPlayer = "X";
     winner = null;
+    winningLine = null;
     pendingDrawVote = false;
     tiedGridIndex = null;
     myDrawVote = null;
