@@ -13,9 +13,6 @@
   <meta name="apple-mobile-web-app-title" content="Ultimate TTT">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
   <title>Ultimate Tic-Tac-Toe</title>
   <link rel="manifest" href="manifest.json">
 
@@ -24,26 +21,58 @@
       background-color: #0d0221;
       color: white;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       height: 100vh;
       margin: 0;
       font-family: sans-serif;
+      text-align: center;
     }
-    .loading-text { font-size: 20px; letter-spacing: 2px; }
+    #error-report {
+      color: #ff5555;
+      padding: 20px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      max-width: 90%;
+      display: none;
+      border: 1px solid #ff5555;
+      margin-top: 20px;
+      background: #220000;
+    }
   </style>
+
+  <script>
+    // GLOBAL ERROR REPORTER
+    window.onerror = function(message, source, lineno, colno, error) {
+      const report = document.getElementById('error-report');
+      if (report) {
+        report.style.display = 'block';
+        report.innerHTML += '<b>ERROR:</b> ' + message + '\nAt: ' + source + ':' + lineno + '\n\n';
+      }
+    };
+    window.addEventListener('unhandledrejection', function(event) {
+      const report = document.getElementById('error-report');
+      if (report) {
+        report.style.display = 'block';
+        report.innerHTML += '<b>PROMISE FAILED:</b> ' + event.reason + '\n\n';
+      }
+    });
+  </script>
 </head>
 <body>
-  <div id="loading" class="loading-text">LOADING ULTIMATE TTT...</div>
+  <div id="loading">CONNECTING TO SANDBOX...</div>
+  <div id="error-report"></div>
+
   <script src="flutter.js" defer></script>
   <script>
     window.addEventListener('load', function(ev) {
-      _flutter.loader.load({
+      _flutter.loader.loadEntrypoint({
         onEntrypointLoaded: function(engineInitializer) {
           engineInitializer.initializeEngine({
             renderer: "html"
           }).then(function(appRunner) {
-            document.getElementById('loading').remove();
+            document.getElementById('loading').style.display = 'none';
             appRunner.runApp();
           });
         }
