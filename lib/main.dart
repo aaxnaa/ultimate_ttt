@@ -289,7 +289,7 @@ class GameScreen extends StatelessWidget {
                       Container(
                         width: 45, height: 45,
                         padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(6)),
+                        decoration: BoxDecoration(color: theme.contrastColor.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
                         child: GridView.builder(
                           physics: const NeverScrollableScrollPhysics(),
                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 2, mainAxisSpacing: 2),
@@ -297,7 +297,7 @@ class GameScreen extends StatelessWidget {
                           itemBuilder: (context, idx) {
                             String win = engine.miniWins[idx];
                             return Container(
-                              color: Colors.black12,
+                              color: theme.contrastColor.withOpacity(0.05),
                               child: Center(child: Text(win == "T" ? "T" : win, style: TextStyle(color: win == "X" ? theme.playerXColor : (win == "O" ? theme.playerOColor : theme.contrastColor.withOpacity(0.2)), fontSize: 8, fontWeight: FontWeight.bold))),
                             );
                           },
@@ -337,7 +337,7 @@ class GameScreen extends StatelessWidget {
                       aspectRatio: 1,
                       child: GridView.builder(
                         physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 14, mainAxisSpacing: 14),
                         itemCount: 9,
                         itemBuilder: (context, idx) {
                           bool isActive = appState.analyzeMode ? false : (engine.activeMiniGrid == null || engine.activeMiniGrid == idx);
@@ -379,11 +379,11 @@ class MiniBoardWidget extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isActive ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+        color: isActive ? theme.background.withOpacity(0.8) : theme.background.withOpacity(0.2),
         borderRadius: BorderRadius.circular(8),
         border: isActive 
           ? Border.all(color: theme.accentColor, width: 3) 
-          : (isBolded ? Border.all(color: theme.contrastColor.withOpacity(0.5), width: 2) : null),
+          : (isBolded ? Border.all(color: theme.contrastColor.withOpacity(0.5), width: 2) : Border.all(color: theme.contrastColor.withOpacity(0.1), width: 1)),
       ),
       child: Stack(
         children: [
@@ -403,20 +403,21 @@ class MiniBoardWidget extends StatelessWidget {
                   }
                 },
                 child: Container(
-                  decoration: BoxDecoration(border: Border.all(color: Colors.white.withOpacity(0.05), width: 0.5)),
+                  decoration: BoxDecoration(border: Border.all(color: theme.contrastColor.withOpacity(0.1), width: 0.5)),
                   child: Center(
                     child: Text(val, style: TextStyle(
-                      color: val == "X" ? theme.playerXColor : theme.playerOColor, 
+                      color: val == "X" 
+                        ? theme.playerXColor.withOpacity(isActive || appState.analyzeMode ? 1.0 : 0.6) 
+                        : theme.playerOColor.withOpacity(isActive || appState.analyzeMode ? 1.0 : 0.6), 
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      opacity: isActive || appState.analyzeMode ? 1.0 : 0.6
                     )),
                   ),
                 ),
               );
             },
           ),
-          if (win != "") Center(child: Opacity(opacity: 0.4, child: Text(win, style: TextStyle(fontSize: 60, fontWeight: FontWeight.w900, color: win == "X" ? theme.playerXColor : (win == "O" ? theme.playerOColor : Colors.grey))))),
+          if (win != "") IgnorePointer(child: Center(child: Opacity(opacity: 0.4, child: Text(win, style: TextStyle(fontSize: 60, fontWeight: FontWeight.w900, color: win == "X" ? theme.playerXColor : (win == "O" ? theme.playerOColor : Colors.grey)))))),
         ],
       ),
     );
