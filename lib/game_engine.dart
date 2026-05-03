@@ -27,6 +27,13 @@ class UltimateTTTEngine extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool canMove(int subGridIndex, int squareIndex) {
+    if (winner != null || pendingDrawVote) return false;
+    if (activeMiniGrid != null && subGridIndex != activeMiniGrid) return false;
+    if (board[subGridIndex][squareIndex] != "") return false;
+    return true;
+  }
+
   void makeMove(int subGridIndex, int squareIndex) {
     if (winner != null || pendingDrawVote) return;
     

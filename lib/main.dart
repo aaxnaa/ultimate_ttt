@@ -25,6 +25,7 @@ class AppState extends ChangeNotifier {
   bool showScoreboard = true;
   bool analyzeMode = false;
   bool isLocalPlay = false;
+  String lastDebugMessage = "WELCOME! START A MATCH.";
 
   void updateTheme(ThemeType type) {
     currentThemeType = type;
@@ -50,6 +51,11 @@ class AppState extends ChangeNotifier {
   void startLocalPlay() {
     isLocalPlay = true;
     myPlayerSymbol = "X";
+    notifyListeners();
+  }
+
+  void setDebug(String msg) {
+    lastDebugMessage = msg;
     notifyListeners();
   }
 }
@@ -138,6 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: () {
                   appState.updateNames(_p1.text, _p2.text);
                   appState.startLocalPlay();
+                  appState.setDebug("LOCAL MATCH STARTED");
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
                 },
                 child: const Text("LOCAL PASS & PLAY", style: TextStyle(fontWeight: FontWeight.w900)),
@@ -231,6 +238,8 @@ class _HomeScreenState extends State<HomeScreen> {
               final net = Provider.of<NetworkManager>(context, listen: false);
               final engine = Provider.of<UltimateTTTEngine>(context, listen: false);
               
+              appState.setDebug("CONNECTING TO PIN: $pin...");
+              
               if (isHost) {
                 net.hostRoom(pin, appState.player1Name);
               } else {
@@ -246,7 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
                      "p2": appState.player2Name,
                    });
                    if (Navigator.canPop(context)) {
-                     Navigator.pop(context); // Close Lobby
+                     Navigator.pop(context);
                      Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
                    }
                 }
@@ -255,10 +264,10 @@ class _HomeScreenState extends State<HomeScreen> {
               net.onDataReceived = (data) {
                 if (data["type"] == "MOVE") {
                   engine.makeMove(data["subGrid"], data["square"]);
+                  appState.setDebug("OPPONENT MOVED: ${data['subGrid']}:${data['square']}");
                 } else if (data["type"] == "SYNC_SETUP") {
                   appState.updateTheme(ThemeType.values[data["theme"]]);
                   appState.updateNames(data["p1"], data["p2"]);
-                  // Joiner transitions here!
                   if (Navigator.canPop(context)) {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
@@ -402,7 +411,6 @@ class GameScreen extends StatelessWidget {
                             engine.reset();
                           } else {
                             net.sendData({"type": "RESTART_REQUEST"});
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Restart request sent...")));
                           }
                         }, icon: Icon(Icons.refresh, color: theme.contrastColor, size: 28)),
                       ],
@@ -432,10 +440,17 @@ class GameScreen extends StatelessWidget {
                 ),
               ),
 
+              // Turn Indicator & Debug Msg
               Padding(
-                padding: const EdgeInsets.only(bottom: 40, top: 20),
-                child: Text("${turnText.toUpperCase()}'S TURN - ${appState.isLocalPlay || engine.currentPlayer == appState.myPlayerSymbol ? 'GO' : 'WAIT'}", 
-                  style: TextStyle(color: turnColor, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 2, shadows: [Shadow(color: Colors.black26, blurRadius: 4, offset: const Offset(0, 2))])),
+                padding: const EdgeInsets.only(bottom: 20, top: 10),
+                child: Column(
+                  children: [
+                    Text("${turnText.toUpperCase()}'S TURN - ${appState.isLocalPlay || engine.currentPlayer == appState.myPlayerSymbol ? 'GO' : 'WAIT'}", 
+                      style: TextStyle(color: turnColor, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 2)),
+                    const SizedBox(height: 8),
+                    Text(appState.lastDebugMessage, style: TextStyle(color: theme.contrastColor.withOpacity(0.4), fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  ],
+                ),
               ),
             ],
           ),
@@ -478,23 +493,35 @@ class MiniBoardWidget extends StatelessWidget {
                 behavior: HitTestBehavior.opaque,
                 onTap: () {
                   if (appState.isLocalPlay || engine.currentPlayer == appState.myPlayerSymbol) {
-                    engine.makeMove(subGridIdx, sqIdx);
-                    if (!appState.isLocalPlay) {
-                      Provider.of<NetworkManager>(context, listen: false).sendData({"type": "MOVE", "subGrid": subGridIdx, "square": sqIdx});
+                    bool isValid = engine.canMove(subGridIdx, sqIdx);
+                    if (isValid) {
+                      engine.makeMove(subGridIdx, sqIdx);
+                      if (!appState.isLocalPlay) {
+                        try {
+                          Provider.of<NetworkManager>(context, listen: false).sendData({"type": "MOVE", "subGrid": subGridIdx, "square": sqIdx});
+                        } catch (e) {
+                           appState.setDebug("NETWORK ERROR: $e");
+                        }
+                      }
+                    } else {
+                       appState.setDebug("INVALID MOVE: TARGET GRID ${engine.activeMiniGrid ?? 'ANY'}");
                     }
+                  } else {
+                     appState.setDebug("NOT YOUR TURN!");
                   }
                 },
                 child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.transparent, // Explicitly hit-testable
-                    border: Border.all(color: theme.contrastColor.withOpacity(0.2), width: 0.8),
-                  ),
-                  child: Center(
-                    child: Text(val, style: TextStyle(
-                      color: (val == "X" ? theme.playerXColor : theme.playerOColor).withOpacity(isActive || appState.analyzeMode ? 1.0 : 0.6), 
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                    )),
+                  color: Colors.transparent,
+                  child: Container(
+                    margin: const EdgeInsets.all(1),
+                    decoration: BoxDecoration(border: Border.all(color: theme.contrastColor.withOpacity(0.15), width: 0.8)),
+                    child: Center(
+                      child: Text(val, style: TextStyle(
+                        color: (val == "X" ? theme.playerXColor : theme.playerOColor).withOpacity(isActive || appState.analyzeMode ? 1.0 : 0.6), 
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      )),
+                    ),
                   ),
                 ),
               );
