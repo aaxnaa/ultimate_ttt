@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'game_engine.dart';
 import 'theme_engine.dart';
 import 'network_manager.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   runApp(
@@ -27,7 +26,7 @@ class AppState extends ChangeNotifier {
   bool analyzeMode = false;
   bool isLocalPlay = false;
   bool showWonOverlays = true;
-  String lastDebugMessage = "V1.0.12 READY";
+  String lastDebugMessage = "V1.0.13 READY";
 
   void updateTheme(ThemeType type) {
     currentThemeType = type;
@@ -151,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: () {
                   appState.updateNames(_p1.text, _p2.text);
                   appState.startLocalPlay();
-                  appState.setDebug("V1.0.12 LOCAL PLAY");
+                  appState.setDebug("V1.0.13 READY");
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
                 },
                 child: const Text("LOCAL PASS & PLAY", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -187,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               const SizedBox(height: 40),
-              Center(child: Text("VERSION 1.0.12", style: TextStyle(color: theme.contrastColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1))),
+              Center(child: Text("VERSION 1.0.13", style: TextStyle(color: theme.contrastColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1))),
             ],
           ),
         ),
@@ -278,7 +277,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
                   }
                 } else if (data["type"] == "DRAW_VOTE") {
-                  engine.castDrawVote(data["vote"], false);
+                  engine.castDrawVote(data["vote"], false, appState.isLocalPlay);
                 } else if (data["type"] == "RESTART_REQUEST") {
                   engine.setRestartRequested(true);
                 } else if (data["type"] == "RESTART_RESPONSE") {
@@ -384,9 +383,9 @@ class GameScreen extends StatelessWidget {
                     
                     if (appState.showScoreboard)
                       Container(
-                        width: 50, height: 50,
-                        padding: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(color: theme.contrastColor.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                        width: 45, height: 45,
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(color: theme.contrastColor.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
                         child: GridView.builder(
                           physics: const NeverScrollableScrollPhysics(),
                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 2, mainAxisSpacing: 2),
@@ -462,6 +461,69 @@ class GameScreen extends StatelessWidget {
               ),
             ],
           ),
+          
+          if (engine.pendingDrawVote && engine.myDrawVote == null)
+            _buildDialogOverlay(
+              context,
+              title: "Mini-Grid Draw!",
+              content: "This square ended in a tie. End the whole game in a draw?",
+              actions: [
+                TextButton(onPressed: () {
+                  engine.castDrawVote(false, true, appState.isLocalPlay);
+                  if (!appState.isLocalPlay) net.sendData({"type": "DRAW_VOTE", "vote": false});
+                }, child: const Text("CONTINUE")),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: theme.accentColor),
+                  onPressed: () {
+                    engine.castDrawVote(true, true, appState.isLocalPlay);
+                    if (!appState.isLocalPlay) net.sendData({"type": "DRAW_VOTE", "vote": true});
+                  }, 
+                  child: const Text("END IN DRAW", style: TextStyle(color: Colors.white))),
+              ],
+            ),
+          
+          if (engine.restartRequested)
+            _buildDialogOverlay(
+              context,
+              title: "Restart Game?",
+              content: "Opponent wants to restart the match.",
+              actions: [
+                TextButton(onPressed: () {
+                  engine.setRestartRequested(false);
+                  net.sendData({"type": "RESTART_RESPONSE", "accept": false});
+                }, child: const Text("DECLINE")),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: theme.accentColor),
+                  onPressed: () {
+                    engine.reset();
+                    net.sendData({"type": "RESTART_RESPONSE", "accept": true});
+                  }, 
+                  child: const Text("ACCEPT", style: TextStyle(color: Colors.white))),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDialogOverlay(BuildContext context, {required String title, required String content, required List<Widget> actions}) {
+    return Container(
+      color: Colors.black87,
+      child: Center(
+        child: Container(
+          width: 300,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(color: const Color(0xFF1a1a1a), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.white10)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 15),
+              Text(content, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+              const SizedBox(height: 25),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: actions),
+            ],
+          ),
         ),
       ),
     );
@@ -483,7 +545,7 @@ class MiniBoardWidget extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isActive ? theme.background.withOpacity(0.9) : theme.background.withOpacity(0.2),
+        color: isActive ? theme.background.withOpacity(0.8) : theme.background.withOpacity(0.2),
         borderRadius: BorderRadius.circular(10),
         border: isActive 
           ? Border.all(color: theme.accentColor, width: 4) 
@@ -508,7 +570,7 @@ class MiniBoardWidget extends StatelessWidget {
                         Provider.of<NetworkManager>(context, listen: false).sendData({"type": "MOVE", "subGrid": subGridIdx, "square": sqIdx});
                       }
                     } else {
-                      appState.setDebug("INVALID MOVE: TARGET GRID ${engine.activeMiniGrid ?? 'ANY'}");
+                      appState.setDebug("INVALID MOVE: GO TO GRID ${engine.activeMiniGrid != null ? engine.activeMiniGrid! + 1 : 'ANY'}");
                     }
                   } else {
                     appState.setDebug("WAIT FOR OPPONENT");
@@ -518,7 +580,7 @@ class MiniBoardWidget extends StatelessWidget {
                   color: Colors.transparent,
                   child: Container(
                     margin: const EdgeInsets.all(1),
-                    decoration: BoxDecoration(border: Border.all(color: theme.contrastColor.withOpacity(0.2), width: 0.8)),
+                    decoration: BoxDecoration(border: Border.all(color: theme.contrastColor.withOpacity(0.2), width: 1.0)),
                     child: Center(
                       child: Text(val, style: TextStyle(
                         color: (val == "X" ? theme.playerXColor : theme.playerOColor).withOpacity(isActive || appState.analyzeMode ? 1.0 : 0.6), 
