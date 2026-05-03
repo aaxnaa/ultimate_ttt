@@ -481,10 +481,9 @@ class MiniBoardWidget extends StatelessWidget {
                   decoration: BoxDecoration(border: Border.all(color: theme.contrastColor.withOpacity(0.2), width: 1.0)),
                   child: Center(
                     child: Text(val, style: TextStyle(
-                      color: val == "X" ? theme.playerXColor : theme.playerOColor, 
+                      color: (val == "X" ? theme.playerXColor : theme.playerOColor).withOpacity(isActive || appState.analyzeMode ? 1.0 : 0.6), 
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      opacity: isActive || appState.analyzeMode ? 1.0 : 0.6
                     )),
                   ),
                 ),
