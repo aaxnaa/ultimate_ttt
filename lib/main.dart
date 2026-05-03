@@ -623,7 +623,7 @@ class _GameScreenState extends State<GameScreen> {
 
         // ULTIMATE WIN SCREEN OVERLAY
         if (engine.winner != null)
-          Container(color: Colors.black90, child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Container(color: Colors.black.withOpacity(0.9), child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             Text(engine.winner == "DRAW" ? "IT'S A DRAW!" : "ULTIMATE WINNER", style: TextStyle(color: theme.contrastColor, fontSize: 20, letterSpacing: 5, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
             if (engine.winner != "DRAW")
