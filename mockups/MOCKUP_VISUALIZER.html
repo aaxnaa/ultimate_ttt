@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate TTT Mockup Visualizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;400;600&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-start: #0d0221;
+            --bg-end: #261447;
+            --x-color: #7000ff;
+            --o-color: #00fdff;
+            --accent: #ff00e0;
+            --text-color: #ffffff;
+            --btn-text: #ffffff;
+        }
+
+        /* 12 HAND-CRAFTED OMBRE THEMES */
+        .theme-galaxy { --bg-start: #0d0221; --bg-end: #261447; --x-color: #7000ff; --o-color: #00fdff; --accent: #ff00e0; --text-color: #fff; --btn-text: #fff; }
+        .theme-minimalist { --bg-start: #ffffff; --bg-end: #f5f5f5; --x-color: #000; --o-color: #000; --accent: #000; --text-color: #000; --btn-text: #fff; }
+        .theme-picnic { --bg-start: #FFFDE7; --bg-end: #FFF9C4; --x-color: #D81B60; --o-color: #2E7D32; --accent: #FBC02D; --text-color: #5D4037; --btn-text: #fff; }
+        .theme-ocean { --bg-start: #E0F7FA; --bg-end: #80DEEA; --x-color: #01579B; --o-color: #00B0FF; --accent: #26C6DA; --text-color: #01579B; --btn-text: #fff; }
+        .theme-sunset { --bg-start: #4A148C; --bg-end: #FF6F00; --x-color: #EA80FC; --o-color: #FFD180; --accent: #FF4081; --text-color: #fff; --btn-text: #fff; }
+        .theme-natural { --bg-start: #EFEBE9; --bg-end: #D7CCC8; --x-color: #3E2723; --o-color: #795548; --accent: #5D4037; --text-color: #3E2723; --btn-text: #fff; }
+        .theme-plant { --bg-start: #E8F5E9; --bg-end: #C8E6C9; --x-color: #1B5E20; --o-color: #BF360C; --accent: #4CAF50; --text-color: #1B5E20; --btn-text: #fff; }
+        .theme-barbie { --bg-start: #FFC1CC; --bg-end: #F48FB1; --x-color: #880E4F; --o-color: #fff; --accent: #D81B60; --text-color: #fff; --btn-text: #fff; }
+        .theme-summer { --bg-start: #FFF9C4; --bg-end: #FFE082; --x-color: #BF360C; --o-color: #006064; --accent: #FF6F00; --text-color: #333; --btn-text: #fff; }
+        .theme-winter { --bg-start: #E3F2FD; --bg-end: #BBDEFB; --x-color: #0D47A1; --o-color: #D81B60; --accent: #1976D2; --text-color: #0D47A1; --btn-text: #fff; }
+        .theme-nighttime { --bg-start: #1A237E; --bg-end: #000051; --x-color: #FFFFEB3B; --o-color: #00E5FF; --accent: #7986CB; --text-color: #fff; --btn-text: #fff; }
+        .theme-midnight { --bg-start: #000; --bg-end: #1a1a1a; --x-color: #fff; --o-color: #ff0000; --accent: #fff; --text-color: #fff; --btn-text: #000; }
+
+        body {
+            background-color: #111;
+            color: white;
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            transition: background 0.3s;
+        }
+
+        .phone-container {
+            width: 375px;
+            height: 812px;
+            background: linear-gradient(180deg, var(--bg-start) 0%, var(--bg-end) 100%);
+            border: 12px solid #333;
+            border-radius: 40px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 50px 100px rgba(0,0,0,0.5);
+            margin-bottom: 40px;
+            transition: all 0.5s ease;
+            color: var(--text-color);
+        }
+
+        .screen {
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .active { display: flex; }
+
+        .header-logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--x-color);
+            text-shadow: 0 0 10px var(--x-color);
+            margin-top: 60px;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .glass-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .input-label { font-size: 12px; opacity: 0.7; margin-bottom: 8px; color: var(--text-color); }
+        .input-mock { font-size: 18px; border-bottom: 1px solid var(--text-color); padding-bottom: 5px; margin-bottom: 20px; color: var(--text-color); }
+
+        .theme-carousel {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+        .theme-item { display: flex; flex-direction: column; align-items: center; gap: 5px; flex-shrink: 0; cursor: pointer; }
+        .theme-circle { width: 45px; height: 45px; border-radius: 50%; border: 2px solid transparent; }
+        .theme-item span { font-size: 9px; text-transform: uppercase; opacity: 0.7; color: var(--text-color); }
+        .theme-item.selected .theme-circle { border-color: var(--text-color); box-shadow: 0 0 10px var(--x-color); }
+
+        .btn {
+            height: 50px;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            margin-top: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 14px;
+        }
+        .btn-primary { background: var(--x-color); color: var(--btn-text); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .btn-outline { border: 2px solid var(--o-color); color: var(--o-color); background: rgba(255,255,255,0.05); }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; color: var(--text-color); }
+        
+        .tiny-scoreboard {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            padding: 2px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .tiny-score-cell {
+            background: rgba(0,0,0,0.1);
+            border-radius: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 7px;
+            font-weight: bold;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 60px;
+            aspect-ratio: 1;
+        }
+
+        .mini-grid {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            padding: 4px;
+            position: relative;
+        }
+
+        .mini-grid.active-target {
+            border: 2px solid var(--accent);
+            box-shadow: 0 0 15px var(--accent);
+            animation: border-pulse 2s infinite;
+        }
+
+        .mini-grid.dimmed { opacity: 0.2; }
+
+        .cell { border: 0.1px solid rgba(255,255,255,0.1); aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        
+        /* Dynamic Opacity for X/O Cells */
+        .mini-grid.active-target .cell.x { color: var(--x-color); opacity: 1.0; font-weight: bold; }
+        .mini-grid.active-target .cell.o { color: var(--o-color); opacity: 1.0; font-weight: bold; }
+        .mini-grid.dimmed .cell.x { color: var(--x-color); opacity: 0.6; font-weight: bold; }
+        .mini-grid.dimmed .cell.o { color: var(--o-color); opacity: 0.6; font-weight: bold; }
+
+        /* ANALYZE MODE OVERRIDES */
+        .analyze-mode .mini-grid { opacity: 1.0 !important; border: 1px solid transparent !important; box-shadow: none !important; animation: none !important; background: rgba(255,255,255,0.08); }
+        .analyze-mode .mini-grid.active-target { border: 2px solid var(--text-color) !important; }
+        .analyze-mode .cell.x, .analyze-mode .cell.o { opacity: 1.0 !important; }
+
+        .won-overlay {
+            position: absolute;
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%);
+            width: 80%; height: 80%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 70px; font-weight: 900; pointer-events: none;
+        }
+        /* Overlays at 40% Opacity */
+        .won-overlay.x { color: var(--x-color); opacity: 0.4; }
+        .won-overlay.o { color: var(--o-color); opacity: 0.4; }
+        .won-overlay.t { color: var(--text-color); opacity: 0.3; }
+
+        .turn-banner {
+            margin-top: auto;
+            margin-bottom: 40px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+            padding: 15px;
+            text-align: center;
+            color: var(--text-color);
+        }
+        .turn-text { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 700; color: var(--x-color); }
+        .turn-instruction { font-size: 11px; opacity: 0.8; margin-top: 3px; letter-spacing: 2px; }
+
+        @keyframes border-pulse { 0% { box-shadow: 0 0 5px var(--accent); } 50% { box-shadow: 0 0 15px var(--accent); } 100% { box-shadow: 0 0 5px var(--accent); } }
+
+        .nav-controls { display: flex; gap: 10px; margin-bottom: 20px; }
+        .nav-btn { background: #444; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .nav-btn:hover { background: #555; }
+        .nav-btn.active { background: #7000ff; }
+    </style>
+</head>
+<body class="theme-galaxy">
+
+    <div class="nav-controls">
+        <button id="btn-home" class="nav-btn active" onclick="showScreen('home')">1. Setup Screen</button>
+        <button id="btn-game" class="nav-btn" onclick="showScreen('game')">2. Gameplay View</button>
+        <button id="btn-analyze" class="nav-btn" onclick="toggleAnalyze()">Toggle Analyze Mode</button>
+    </div>
+
+    <div id="phone" class="phone-container theme-galaxy">
+        
+        <!-- HOME SCREEN -->
+        <div id="home" class="screen active">
+            <div class="header-logo">ULTIMATE<br>TIC-TAC-TOE</div>
+            
+            <div class="glass-card">
+                <div class="input-label">PLAYER 1 (X)</div>
+                <div class="input-mock">Aaina</div>
+                <div class="input-label">PLAYER 2 (O)</div>
+                <div class="input-mock">Rahul</div>
+            </div>
+
+            <p style="margin-top: 25px; font-size: 13px; font-weight: 600;">CHOOSE YOUR VIBE</p>
+            <div class="theme-carousel">
+                <div class="theme-item" onclick="setTheme('ocean')">
+                    <div class="theme-circle" style="background: linear-gradient(45deg, #E0F7FA, #80DEEA);"></div>
+                    <span>Ocean</span>
+                </div>
+                <div class="theme-item" onclick="setTheme('picnic')">
+                    <div class="theme-circle" style="background: linear-gradient(45deg, #FFFDE7, #FFF9C4);"></div>
+                    <span>Picnic</span>
+                </div>
+                <div class="theme-item" onclick="setTheme('sunset')">
+                    <div class="theme-circle" style="background: linear-gradient(45deg, #4A148C, #FF6F00);"></div>
+                    <span>Sunset</span>
+                </div>
+                <div class="theme-item selected" onclick="setTheme('galaxy')">
+                    <div class="theme-circle" style="background: linear-gradient(45deg, #0D0221, #261447);"></div>
+                    <span>Galaxy</span>
+                </div>
+                <div class="theme-item" onclick="setTheme('minimalist')">
+                    <div class="theme-circle" style="background: linear-gradient(45deg, #ffffff, #e0e0e0);"></div>
+                    <span>Minimal</span>
+                </div>
+                <div class="theme-item" onclick="setTheme('natural')">
+                    <div class="theme-circle" style="background: linear-gradient(45deg, #EFEBE9, #D7CCC8);"></div>
+                    <span>Natural</span>
+                </div>
+                <div class="theme-item" onclick="setTheme('plant')">
+                    <div class="theme-circle" style="background: linear-gradient(45deg, #E8F5E9, #C8E6C9);"></div>
+                    <span>Plant</span>
+                </div>
+                <div class="theme-item" onclick="setTheme('barbie')">
+                    <div class="theme-circle" style="background: linear-gradient(45deg, #FFC1CC, #F48FB1);"></div>
+                    <span>Barbie</span>
+                </div>
+                <div class="theme-item" onclick="setTheme('summer')">
+                    <div class="theme-circle" style="background: linear-gradient(45deg, #FFF9C4, #FFE082);"></div>
+                    <span>Summer</span>
+                </div>
+                <div class="theme-item" onclick="setTheme('winter')">
+                    <div class="theme-circle" style="background: linear-gradient(45deg, #E3F2FD, #BBDEFB);"></div>
+                    <span>Winter</span>
+                </div>
+                <div class="theme-item" onclick="setTheme('nighttime')">
+                    <div class="theme-circle" style="background: linear-gradient(45deg, #1A237E, #000051);"></div>
+                    <span>Night</span>
+                </div>
+                <div class="theme-item" onclick="setTheme('midnight')">
+                    <div class="theme-circle" style="background: #000;"></div>
+                    <span>Midnight</span>
+                </div>
+            </div>
+
+            <div style="margin-top: auto; margin-bottom: 30px;">
+                <div class="btn btn-primary">Create Room</div>
+                <div class="btn btn-outline">Join Room</div>
+            </div>
+        </div>
+
+        <!-- GAME SCREEN -->
+        <div id="game" class="screen">
+            <div class="top-bar">
+                <div style="font-size: 18px;">✕</div>
+                <div class="tiny-scoreboard">
+                    <div class="tiny-score-cell" style="color: var(--x-color);">X</div>
+                    <div class="tiny-score-cell"></div>
+                    <div class="tiny-score-cell" style="color: var(--o-color);">O</div>
+                    <div class="tiny-score-cell"></div>
+                    <div class="tiny-score-cell"></div>
+                    <div class="tiny-score-cell" style="color: var(--o-color);">O</div>
+                    <div class="tiny-score-cell"></div>
+                    <div class="tiny-score-cell"></div>
+                    <div class="tiny-score-cell" style="color: grey;">T</div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <div id="analyze-icon" style="font-size: 16px; color: var(--text-color); opacity: 0.5;">👁</div>
+                    <div style="font-size: 14px; color: var(--o-color);">⊞</div>
+                    <div style="font-size: 18px;">↻</div>
+                </div>
+            </div>
+
+            <div id="board-container" class="grid-container">
+                <div class="mini-grid dimmed"><div class="won-overlay x">X</div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+                <div class="mini-grid dimmed"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell x">X</div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+                <div class="mini-grid dimmed"><div class="won-overlay o">O</div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+                <div class="mini-grid dimmed"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+                <div class="mini-grid active-target">
+                    <div class="cell x">X</div><div class="cell o">O</div><div class="cell"></div>
+                    <div class="cell"></div><div class="cell x">X</div><div class="cell"></div>
+                    <div class="cell"></div><div class="cell"></div><div class="cell"></div>
+                </div>
+                <div class="mini-grid dimmed"><div class="won-overlay o">O</div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+                <div class="mini-grid dimmed"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+                <div class="mini-grid dimmed"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+                <div class="mini-grid dimmed"><div class="won-overlay t">T</div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+            </div>
+
+            <div class="turn-banner">
+                <div class="turn-text">AAINA'S TURN</div>
+                <div class="turn-instruction">GO</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let isAnalyzeMode = false;
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.getElementById('btn-' + id).classList.add('active');
+        }
+
+        function toggleAnalyze() {
+            isAnalyzeMode = !isAnalyzeMode;
+            const container = document.getElementById('board-container');
+            const icon = document.getElementById('analyze-icon');
+            const btn = document.getElementById('btn-analyze');
+            
+            if (isAnalyzeMode) {
+                container.classList.add('analyze-mode');
+                icon.style.opacity = "1";
+                icon.style.color = "var(--accent)";
+                btn.style.background = "var(--accent)";
+            } else {
+                container.classList.remove('analyze-mode');
+                icon.style.opacity = "0.5";
+                icon.style.color = "var(--text-color)";
+                btn.style.background = "#444";
+            }
+        }
+
+        function setTheme(theme) {
+            const phone = document.getElementById('phone');
+            phone.className = 'phone-container theme-' + theme;
+            
+            // Update active state circle
+            document.querySelectorAll('.theme-item').forEach(item => {
+                item.classList.remove('selected');
+                if (item.getAttribute('onclick').includes(theme)) {
+                    item.classList.add('selected');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
