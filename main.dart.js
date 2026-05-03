@@ -24923,7 +24923,7 @@ _.d=null
 _.e=!0
 _.r=_.f=!1
 _.w=!0
-_.x="V1.0.14 READY"
+_.x="V1.0.15 READY"
 _.N$=0
 _.M$=b
 _.J$=_.n$=0},
@@ -82419,19 +82419,20 @@ s=r.c
 if(s!=null&&a!==s)return!1
 if(r.a[a][b]!=="")return!1
 return!0},
-Ub(a,b){var s,r,q=this
-if(!q.Re(a,b))return
-s=q.a
-s[a][b]=q.d
-if(q.b[a]===""){r=q.Kn(s[a])
-if(r!==""){s=q.b
+Ub(a,b){var s,r,q,p=this
+if(!p.Re(a,b))return
+s=p.a
+s[a][b]=p.d
+if(p.b[a]===""){r=p.Kn(s[a])
+if(r!==""){s=p.b
 s[a]=r
-q.e=q.Kn(s)}else if(!B.b.u(q.a[a],"")){q.b[a]="T"
-q.f=!0
-q.x=q.w=null}}if(!B.b.u(q.a[b],""))q.c=null
-else q.c=b
-q.d=q.d==="X"?"O":"X"
-q.ai()},
+q=p.Kn(s)
+if(q!=="")p.e=q}else if(!B.b.u(p.a[a],"")){p.b[a]="T"
+p.f=!0
+p.x=p.w=null}}if(!B.b.u(p.a[b],""))p.c=null
+else p.c=b
+p.d=p.d==="X"?"O":"X"
+p.ai()},
 Eq(a,b,c){var s,r=this
 if(c)r.x=r.w=a
 else if(b)r.w=a
@@ -82488,7 +82489,7 @@ o=A.rm(B.SH,new A.ajo(m,k,a),A.xv(l,l,j.r,l,l,l,l,l,l,B.j,l,B.NR,l,l,new A.cO(A.
 n=t.E
 g=A.Mz(A.c([A.a1U(A.rm(B.SG,new A.ajp(m,k,a),A.xv(l,l,g,l,l,l,l,l,l,B.j,l,B.yQ,l,l,new A.cO(A.hp(30),B.o),l,l,l,l,l))),B.NV,A.a1U(A.rm(B.SE,new A.ajq(m,k,a),A.xv(l,l,j.f,l,l,l,l,l,l,B.j,l,B.yQ,l,l,new A.cO(A.hp(30),B.o),l,l,l,l,l)))],n),B.b_)
 i=i.dc()>0.5?B.l:B.j
-n=A.c([B.O_,f,B.yV,e,B.NZ,s,B.NY,r,B.yV,q,B.lr,new A.OL(12,12,p,l),B.ii,o,B.lr,g,B.ii,A.i2(A.d5("VERSION 1.0.14",l,l,l,A.cP(l,l,A.an(51,i.t()>>>16&255,i.t()>>>8&255,i.t()&255),l,l,l,l,l,l,l,l,10,l,l,l,l,l,!0,l,1,l,l,l,l,l,l),l,l),l,l)],n)
+n=A.c([B.O_,f,B.yV,e,B.NZ,s,B.NY,r,B.yV,q,B.lr,new A.OL(12,12,p,l),B.ii,o,B.lr,g,B.ii,A.i2(A.d5("VERSION 1.0.15",l,l,l,A.cP(l,l,A.an(51,i.t()>>>16&255,i.t()>>>8&255,i.t()&255),l,l,l,l,l,l,l,l,10,l,l,l,l,l,!0,l,1,l,l,l,l,l,l),l,l),l,l)],n)
 i=A.ah([null,0],t.LO,t.S)
 return A.ars(A.fT(A.arr(new A.Kh(new A.ady(!0,!0,!0,n,i),B.nh,B.aK,!1,l,l,B.A2,!1,l,18,B.an,l,l,B.a5,B.aw,l),!0),B.u,l,new A.ds(l,l,l,l,l,new A.kt(B.iP,B.fq,B.c7,h,l,l),B.aL),l,l,l,l))},
 K4(a,b,c,d){var s,r,q,p,o,n,m=null,l=this.r===a
@@ -82536,7 +82537,7 @@ s.ai()
 s.r=!0
 s.d="X"
 s.ai()
-s.x="V1.0.14 READY"
+s.x="V1.0.15 READY"
 s.ai()
 s=A.Ks(new A.ajl(),null,t.z)
 A.hE(this.c,!1).k7(s)},
