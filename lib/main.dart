@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'game_engine.dart';
 import 'theme_engine.dart';
 import 'network_manager.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   runApp(
@@ -26,7 +27,7 @@ class AppState extends ChangeNotifier {
   bool analyzeMode = false;
   bool isLocalPlay = false;
   bool showWonOverlays = true;
-  String lastDebugMessage = "V1.0.13 READY";
+  String lastDebugMessage = "V1.0.14 READY";
 
   void updateTheme(ThemeType type) {
     currentThemeType = type;
@@ -118,14 +119,11 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 20),
               Text("ULTIMATE\nTIC-TAC-TOE", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: theme.playerXColor)),
               const SizedBox(height: 30),
-              
               Text("WHO ARE YOU?", style: TextStyle(color: theme.contrastColor.withOpacity(0.7), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2)),
               const SizedBox(height: 12),
-              
               _buildPersonaTile(1, "Player 1 (X)", _p1, theme),
               const SizedBox(height: 10),
               _buildPersonaTile(2, "Player 2 (O)", _p2, theme),
-
               const SizedBox(height: 30),
               Text("SELECT THEME", style: TextStyle(color: theme.contrastColor.withOpacity(0.6), fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.bold)),
               const SizedBox(height: 15),
@@ -150,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: () {
                   appState.updateNames(_p1.text, _p2.text);
                   appState.startLocalPlay();
-                  appState.setDebug("V1.0.13 READY");
+                  appState.setDebug("V1.0.14 READY");
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
                 },
                 child: const Text("LOCAL PASS & PLAY", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -186,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               const SizedBox(height: 40),
-              Center(child: Text("VERSION 1.0.13", style: TextStyle(color: theme.contrastColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1))),
+              Center(child: Text("VERSION 1.0.14", style: TextStyle(color: theme.contrastColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1))),
             ],
           ),
         ),
@@ -244,13 +242,11 @@ class _HomeScreenState extends State<HomeScreen> {
               final appState = Provider.of<AppState>(context, listen: false);
               final net = Provider.of<NetworkManager>(context, listen: false);
               final engine = Provider.of<UltimateTTTEngine>(context, listen: false);
-              
               if (isHost) {
                 net.hostRoom(pin, appState.player1Name);
               } else {
                 net.joinRoom(pin, appState.player2Name);
               }
-              
               net.onPlayerConnected = () {
                 if (isHost) {
                    net.sendData({
@@ -265,7 +261,6 @@ class _HomeScreenState extends State<HomeScreen> {
                    }
                 }
               };
-              
               net.onDataReceived = (data) {
                 if (data["type"] == "MOVE") {
                   engine.makeMove(data["subGrid"], data["square"]);
@@ -281,12 +276,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 } else if (data["type"] == "RESTART_REQUEST") {
                   engine.setRestartRequested(true);
                 } else if (data["type"] == "RESTART_RESPONSE") {
-                  if (data["accept"]) {
-                    engine.reset();
-                  }
+                  if (data["accept"]) engine.reset();
                 }
               };
-              
               Navigator.pop(ctx);
               Navigator.push(context, MaterialPageRoute(builder: (_) => LobbyScreen(pin: pin, isHost: isHost)));
             },
@@ -311,11 +303,7 @@ class LobbyScreen extends StatelessWidget {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [theme.background, theme.secondaryBackground],
-          ),
+          gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [theme.background, theme.secondaryBackground]),
         ),
         child: Center(
           child: Column(
@@ -326,8 +314,7 @@ class LobbyScreen extends StatelessWidget {
               const SizedBox(height: 40),
               CircularProgressIndicator(color: theme.accentColor, strokeWidth: 5),
               const SizedBox(height: 40),
-              Text("WAITING FOR OPPONENT...", 
-                style: TextStyle(color: theme.contrastColor, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
+              Text("WAITING FOR OPPONENT...", style: TextStyle(color: theme.contrastColor, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
               const SizedBox(height: 60),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.black26),
@@ -359,109 +346,91 @@ class GameScreen extends StatelessWidget {
     Color turnColor = engine.currentPlayer == "X" ? theme.playerXColor : theme.playerOColor;
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [theme.background, theme.secondaryBackground],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(onPressed: () {
-                      net.stopAll();
-                      engine.reset();
-                      Navigator.pop(context);
-                    }, icon: Icon(Icons.close, color: theme.contrastColor, size: 28)),
-                    
-                    if (appState.showScoreboard)
-                      Container(
-                        width: 45, height: 45,
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(color: theme.contrastColor.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
-                        child: GridView.builder(
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 2, mainAxisSpacing: 2),
-                          itemCount: 9,
-                          itemBuilder: (context, idx) {
-                            String win = engine.miniWins[idx];
-                            return Container(
-                              color: Colors.black12,
-                              child: Center(child: Text(win == "T" ? "T" : win, style: TextStyle(color: win == "X" ? theme.playerXColor : (win == "O" ? theme.playerOColor : Colors.transparent), fontSize: 9, fontWeight: FontWeight.w900))),
-                            );
-                          },
-                        ),
-                      ),
-
-                    Row(
+      body: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [theme.background, theme.secondaryBackground]),
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        IconButton(
-                          onPressed: () => appState.toggleWonOverlays(),
-                          icon: Icon(appState.showWonOverlays ? Icons.layers : Icons.layers_clear, color: theme.contrastColor, size: 28)
-                        ),
-                        IconButton(
-                          onPressed: () => appState.toggleAnalyzeMode(),
-                          icon: Icon(appState.analyzeMode ? Icons.visibility : Icons.visibility_off, color: appState.analyzeMode ? theme.accentColor : theme.contrastColor, size: 28)
-                        ),
-                        IconButton(
-                          onPressed: () => appState.toggleScoreboard(),
-                          icon: Icon(appState.showScoreboard ? Icons.grid_view : Icons.grid_off, color: theme.accentColor, size: 24)
-                        ),
                         IconButton(onPressed: () {
-                          if (appState.isLocalPlay) {
-                            engine.reset();
-                          } else {
-                            net.sendData({"type": "RESTART_REQUEST"});
-                          }
-                        }, icon: Icon(Icons.refresh, color: theme.contrastColor, size: 28)),
+                          net.stopAll();
+                          engine.reset();
+                          Navigator.pop(context);
+                        }, icon: Icon(Icons.close, color: theme.contrastColor, size: 28)),
+                        if (appState.showScoreboard)
+                          Container(
+                            width: 45, height: 45,
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(color: theme.contrastColor.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                            child: GridView.builder(
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 2, mainAxisSpacing: 2),
+                              itemCount: 9,
+                              itemBuilder: (context, idx) {
+                                String win = engine.miniWins[idx];
+                                return Container(
+                                  color: Colors.black12,
+                                  child: Center(child: Text(win == "T" ? "T" : win, style: TextStyle(color: win == "X" ? theme.playerXColor : (win == "O" ? theme.playerOColor : Colors.transparent), fontSize: 9, fontWeight: FontWeight.w900))),
+                                );
+                              },
+                            ),
+                          ),
+                        Row(
+                          children: [
+                            IconButton(onPressed: () => appState.toggleWonOverlays(), icon: Icon(appState.showWonOverlays ? Icons.layers : Icons.layers_clear, color: theme.contrastColor, size: 28)),
+                            IconButton(onPressed: () => appState.toggleAnalyzeMode(), icon: Icon(appState.analyzeMode ? Icons.visibility : Icons.visibility_off, color: appState.analyzeMode ? theme.accentColor : theme.contrastColor, size: 28)),
+                            IconButton(onPressed: () => appState.toggleScoreboard(), icon: Icon(appState.showScoreboard ? Icons.grid_view : Icons.grid_off, color: theme.accentColor, size: 24)),
+                            IconButton(onPressed: () {
+                              if (appState.isLocalPlay) engine.reset(); else net.sendData({"type": "RESTART_REQUEST"});
+                            }, icon: Icon(Icons.refresh, color: theme.contrastColor, size: 28)),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-
-              Expanded(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: AspectRatio(
-                      aspectRatio: 1,
-                      child: GridView.builder(
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 14, mainAxisSpacing: 14),
-                        itemCount: 9,
-                        itemBuilder: (context, idx) {
-                          bool isActive = appState.analyzeMode ? false : (engine.activeMiniGrid == null || engine.activeMiniGrid == idx);
-                          bool isBolded = appState.analyzeMode && (engine.activeMiniGrid == null || engine.activeMiniGrid == idx);
-                          return MiniBoardWidget(subGridIdx: idx, isActive: isActive, isBolded: isBolded);
-                        },
+                  ),
+                  Expanded(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: GridView.builder(
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 14, mainAxisSpacing: 14),
+                            itemCount: 9,
+                            itemBuilder: (context, idx) {
+                              bool isActive = appState.analyzeMode ? false : (engine.activeMiniGrid == null || engine.activeMiniGrid == idx);
+                              bool isBolded = appState.analyzeMode && (engine.activeMiniGrid == null || engine.activeMiniGrid == idx);
+                              return MiniBoardWidget(subGridIdx: idx, isActive: isActive, isBolded: isBolded);
+                            },
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 40, top: 20),
+                    child: Column(
+                      children: [
+                        Text("${turnText.toUpperCase()}'S TURN - ${appState.isLocalPlay || engine.currentPlayer == appState.myPlayerSymbol ? 'GO' : 'WAIT'}", 
+                          style: TextStyle(color: turnColor, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 2)),
+                        const SizedBox(height: 8),
+                        Text(appState.lastDebugMessage, style: TextStyle(color: theme.contrastColor.withOpacity(0.3), fontSize: 9, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-
-              Padding(
-                padding: const EdgeInsets.only(bottom: 40, top: 20),
-                child: Column(
-                  children: [
-                    Text("${turnText.toUpperCase()}'S TURN - ${appState.isLocalPlay || engine.currentPlayer == appState.myPlayerSymbol ? 'GO' : 'WAIT'}", 
-                      style: TextStyle(color: turnColor, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 2, shadows: [Shadow(color: Colors.black26, blurRadius: 4, offset: const Offset(0, 2))])),
-                    const SizedBox(height: 8),
-                    Text(appState.lastDebugMessage, style: TextStyle(color: theme.contrastColor.withOpacity(0.3), fontSize: 9, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-          
           if (engine.pendingDrawVote && engine.myDrawVote == null)
             _buildDialogOverlay(
               context,
@@ -481,7 +450,6 @@ class GameScreen extends StatelessWidget {
                   child: const Text("END IN DRAW", style: TextStyle(color: Colors.white))),
               ],
             ),
-          
           if (engine.restartRequested)
             _buildDialogOverlay(
               context,
@@ -549,7 +517,7 @@ class MiniBoardWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: isActive 
           ? Border.all(color: theme.accentColor, width: 4) 
-          : (isBolded ? Border.all(color: theme.contrastColor.withOpacity(0.6), width: 3) : Border.all(color: theme.contrastColor.withOpacity(0.15), width: 1)),
+          : (isBolded ? Border.all(color: theme.contrastColor.withOpacity(0.6), width: 3) : Border.all(color: theme.contrastColor.withOpacity(0.3), width: 1)),
       ),
       child: Stack(
         children: [
@@ -570,7 +538,7 @@ class MiniBoardWidget extends StatelessWidget {
                         Provider.of<NetworkManager>(context, listen: false).sendData({"type": "MOVE", "subGrid": subGridIdx, "square": sqIdx});
                       }
                     } else {
-                      appState.setDebug("INVALID MOVE: GO TO GRID ${engine.activeMiniGrid != null ? engine.activeMiniGrid! + 1 : 'ANY'}");
+                      appState.setDebug("GO TO GRID ${engine.activeMiniGrid != null ? engine.activeMiniGrid! + 1 : 'ANY'}");
                     }
                   } else {
                     appState.setDebug("WAIT FOR OPPONENT");
@@ -580,7 +548,7 @@ class MiniBoardWidget extends StatelessWidget {
                   color: Colors.transparent,
                   child: Container(
                     margin: const EdgeInsets.all(1),
-                    decoration: BoxDecoration(border: Border.all(color: theme.contrastColor.withOpacity(0.2), width: 1.0)),
+                    decoration: BoxDecoration(border: Border.all(color: theme.contrastColor.withOpacity(0.25), width: 1.0)),
                     child: Center(
                       child: Text(val, style: TextStyle(
                         color: (val == "X" ? theme.playerXColor : theme.playerOColor).withOpacity(isActive || appState.analyzeMode ? 1.0 : 0.6), 
