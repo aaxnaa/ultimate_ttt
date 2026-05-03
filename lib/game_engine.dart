@@ -47,10 +47,10 @@ class UltimateTTTEngine extends ChangeNotifier {
 
     if (winner == null) {
       int nextGrid = squareIndex;
-      if (_isGridFull(board[nextGrid]) || miniWins[nextGrid] != "") {
-         activeMiniGrid = null; // Free move if target is won or full
+      if (_isGridFull(board[nextGrid])) {
+         activeMiniGrid = null; // Free move only if target is 100% full
       } else {
-        activeMiniGrid = nextGrid;
+        activeMiniGrid = nextGrid; // Must play here even if it is won (but not full)
       }
       currentPlayer = (currentPlayer == "X") ? "O" : "X";
     }

@@ -142,8 +142,8 @@ class BotEngine {
        }
     }
 
-    // VERY BAD: Does this move send the opponent to a full/won grid, giving them a free move?
-    if (engine.miniWins[moveSquare] != "" || !engine.board[moveSquare].contains("")) {
+    // VERY BAD: Does this move send the opponent to a 100% full grid, giving them a free move?
+    if (!engine.board[moveSquare].contains("")) {
       score -= 15;
     }
 
@@ -156,5 +156,8 @@ class BotEngine {
       if (b[w[0]] != "" && b[w[0]] == b[w[1]] && b[w[0]] == b[w[2]]) return b[w[0]];
     }
     return "";
+  }
+}
+;
   }
 }
