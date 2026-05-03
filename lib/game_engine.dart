@@ -34,7 +34,8 @@ class UltimateTTTEngine extends ChangeNotifier {
       String subWin = _checkWin(board[subGridIndex]);
       if (subWin != "") {
         miniWins[subGridIndex] = subWin;
-        winner = _checkWin(miniWins);
+        String gameWin = _checkWin(miniWins);
+        if (gameWin != "") winner = gameWin;
       } else if (_isGridFull(board[subGridIndex])) {
         miniWins[subGridIndex] = "T";
         pendingDrawVote = true;

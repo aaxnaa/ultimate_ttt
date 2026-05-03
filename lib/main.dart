@@ -27,7 +27,7 @@ class AppState extends ChangeNotifier {
   bool analyzeMode = false;
   bool isLocalPlay = false;
   bool showWonOverlays = true;
-  String lastDebugMessage = "V1.0.14 READY";
+  String lastDebugMessage = "V1.0.15 READY";
 
   void updateTheme(ThemeType type) {
     currentThemeType = type;
@@ -148,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: () {
                   appState.updateNames(_p1.text, _p2.text);
                   appState.startLocalPlay();
-                  appState.setDebug("V1.0.14 READY");
+                  appState.setDebug("V1.0.15 READY");
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
                 },
                 child: const Text("LOCAL PASS & PLAY", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -184,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               const SizedBox(height: 40),
-              Center(child: Text("VERSION 1.0.14", style: TextStyle(color: theme.contrastColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1))),
+              Center(child: Text("VERSION 1.0.15", style: TextStyle(color: theme.contrastColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1))),
             ],
           ),
         ),
