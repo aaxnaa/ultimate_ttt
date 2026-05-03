@@ -36,7 +36,7 @@ class AppState extends ChangeNotifier {
   bool isLocalPlay = false;
   bool isBotPlay = false;
   BotDifficulty? botDifficulty;
-  String lastDebugMessage = "V2.3 READY";
+  String lastDebugMessage = "V2.4 READY";
 
   String get pXDisplay => playerXName.trim().isEmpty ? "Player X" : playerXName;
   String get pODisplay => playerOName.trim().isEmpty ? "Player O" : playerOName;
@@ -122,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [theme.secondaryBackground, theme.background], // Dark to Light
+            colors: [theme.secondaryBackground, theme.background],
           ),
         ),
         child: SafeArea(
@@ -137,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
-                child: Text("VERSION 2.3", style: TextStyle(color: theme.contrastColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1)),
+                child: Text("VERSION 2.4", style: TextStyle(color: theme.contrastColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1)),
               ),
             ],
           ),
@@ -274,7 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(children: [
       _sectionLabel(theme, "VS TIC-TAC-TRON"),
       const SizedBox(height: 20),
-      _diffPicker(theme),
+      _aiDiffPickerV2(theme),
       const SizedBox(height: 25),
       _symbolPicker(theme),
       const SizedBox(height: 30),
@@ -348,23 +348,39 @@ class _HomeScreenState extends State<HomeScreen> {
     )).toList());
   }
 
-  Widget _diffPicker(GameTheme theme) {
+  Widget _aiDiffPickerV2(GameTheme theme) {
+    final diffs = [
+      {'val': BotDifficulty.easy, 'label': 'EASY', 'icon': Icons.sentiment_satisfied_alt},
+      {'val': BotDifficulty.medium, 'label': 'MED', 'icon': Icons.sentiment_neutral},
+      {'val': BotDifficulty.hard, 'label': 'HARD', 'icon': Icons.sentiment_very_dissatisfied},
+      {'val': BotDifficulty.extraHard, 'label': 'PRO', 'icon': Icons.psychology},
+    ];
+
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(15)),
-      child: Row(children: BotDifficulty.values.map((d) => Expanded(
-        child: GestureDetector(
-          onTap: () => setState(() => _selectedDiff = d),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: _selectedDiff == d ? theme.accentColor : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
+      child: Row(children: diffs.map((d) {
+        bool isSel = _selectedDiff == d['val'];
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _selectedDiff = d['val'] as BotDifficulty),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: isSel ? theme.accentColor : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  Icon(d['icon'] as IconData, size: 18, color: isSel ? Colors.white : theme.contrastColor.withOpacity(0.4)),
+                  const SizedBox(height: 4),
+                  Text(d['label'] as String, style: TextStyle(color: isSel ? Colors.white : theme.contrastColor.withOpacity(0.5), fontWeight: FontWeight.bold, fontSize: 10)),
+                ],
+              ),
             ),
-            child: Center(child: Text(d.name[0].toUpperCase(), style: TextStyle(color: _selectedDiff == d ? Colors.white : theme.contrastColor.withOpacity(0.5), fontWeight: FontWeight.bold))),
           ),
-        ),
-      )).toList()),
+        );
+      }).toList()),
     );
   }
 
@@ -391,7 +407,6 @@ class _HomeScreenState extends State<HomeScreen> {
         });
         if (Navigator.canPop(context)) { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen())); }
       } else if (!isHost && data["type"] == "SYNC_ACCEPT") {
-        // JOINER: Sync theme initially but can override later
         appState.updateTheme(ThemeType.values[data["theme"]]);
         appState.playerXName = data["pX"];
         appState.playerOName = data["pO"];
@@ -434,7 +449,7 @@ void showTutorialDialog(BuildContext context, GameTheme theme) {
             _rule("1. X ALWAYS STARTS", "The first move of the match is always made by Player X."),
             _rule("2. THE SEND-AWAY RULE", "Where you play in a small grid determines which small grid your opponent must play in next."),
             _rule("3. CLAIMING GRIDS", "Win 3-in-a-row in a small grid to claim that spot on the big board."),
-            _rule("4. FREE MOVES", "If your opponent sends you to a grid that is already won or full, you can play ANYWHERE on the board."),
+            _rule("4. FREE MOVES", "If your opponent sends you to a grid that is 100% full, you get a FREE MOVE anywhere on the board."),
             _rule("5. ULTIMATE WIN", "Win 3 large grids in a row to win the entire game!"),
             const SizedBox(height: 15),
             Center(child: SizedBox(width: 150, height: 150, child: AnimatedTutorialBoard(theme: theme))),

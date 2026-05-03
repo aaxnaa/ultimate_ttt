@@ -1,6 +1,6 @@
 name: ultimate_ttt
 description: A high-stakes version of Tic-Tac-Toe with nested games and custom themes.
-version: 1.0.0+1
+version: 2.3.0+1
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
