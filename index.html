@@ -2,77 +2,23 @@
 <html>
 <head>
   <base href="/ultimate_ttt/">
-
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A high-stakes version of Tic-Tac-Toe with nested games and custom themes.">
-
-  <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Ultimate TTT">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <title>Ultimate Tic-Tac-Toe</title>
-  <link rel="manifest" href="manifest.json">
-
+  <title>Ultimate TTT</title>
   <style>
-    body {
-      background-color: #0d0221;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      font-family: sans-serif;
-      text-align: center;
-    }
-    #error-report {
-      color: #ff5555;
-      padding: 20px;
-      font-family: monospace;
-      white-space: pre-wrap;
-      max-width: 90%;
-      display: none;
-      border: 1px solid #ff5555;
-      margin-top: 20px;
-      background: #220000;
-    }
+    body { background-color: #0d0221; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif; }
   </style>
-
-  <script>
-    // GLOBAL ERROR REPORTER
-    window.onerror = function(message, source, lineno, colno, error) {
-      const report = document.getElementById('error-report');
-      if (report) {
-        report.style.display = 'block';
-        report.innerHTML += '<b>ERROR:</b> ' + message + '\nAt: ' + source + ':' + lineno + '\n\n';
-      }
-    };
-    window.addEventListener('unhandledrejection', function(event) {
-      const report = document.getElementById('error-report');
-      if (report) {
-        report.style.display = 'block';
-        report.innerHTML += '<b>PROMISE FAILED:</b> ' + event.reason + '\n\n';
-      }
-    });
-  </script>
 </head>
 <body>
-  <div id="loading">CONNECTING TO SANDBOX...</div>
-  <div id="error-report"></div>
-
+  <div id="loading">LAUNCHING ULTIMATE TTT...</div>
   <script src="flutter.js" defer></script>
   <script>
     window.addEventListener('load', function(ev) {
       _flutter.loader.loadEntrypoint({
         onEntrypointLoaded: function(engineInitializer) {
-          engineInitializer.initializeEngine({
-            renderer: "html"
-          }).then(function(appRunner) {
-            document.getElementById('loading').style.display = 'none';
+          engineInitializer.initializeEngine({ renderer: "html" }).then(function(appRunner) {
             appRunner.runApp();
           });
         }
