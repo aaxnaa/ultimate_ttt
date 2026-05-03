@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'game_engine.dart';
 
-enum BotDifficulty { easy, medium, hard }
+enum BotDifficulty { easy, medium, hard, extraHard }
 
 class BotEngine {
   final UltimateTTTEngine engine;
@@ -18,14 +18,15 @@ class BotEngine {
     isThinking = true;
     
     // Artificial delay to make it feel like it's thinking
-    await Future.delayed(Duration(milliseconds: 600 + _random.nextInt(800)));
+    int delay = (difficulty == BotDifficulty.extraHard) ? 1200 : 800;
+    await Future.delayed(Duration(milliseconds: delay + _random.nextInt(500)));
     
     if (engine.winner != null) {
       isThinking = false;
       return;
     }
 
-    int targetGrid = engine.activeMiniGrid ?? _getRandomValidGrid();
+    int targetGrid = engine.activeMiniGrid ?? _getBestGridForBot();
     int chosenSquare = -1;
 
     switch (difficulty) {
@@ -38,6 +39,9 @@ class BotEngine {
       case BotDifficulty.hard:
         chosenSquare = _getHardMove(targetGrid);
         break;
+      case BotDifficulty.extraHard:
+        chosenSquare = _getExtraHardMove(targetGrid);
+        break;
     }
 
     if (chosenSquare != -1) {
@@ -47,6 +51,26 @@ class BotEngine {
     isThinking = false;
   }
 
+  int _getBestGridForBot() {
+    // If it's a free move, pick the best grid
+    if (difficulty == BotDifficulty.extraHard || difficulty == BotDifficulty.hard) {
+      // Prioritize grids where we can win immediately
+      for (int i = 0; i < 9; i++) {
+        if (engine.miniWins[i] == "" && engine.board[i].contains("")) {
+           if (_findWinningMove(i, botSymbol) != -1) return i;
+        }
+      }
+      // Or block opponent from winning a grid
+      String opponent = botSymbol == "X" ? "O" : "X";
+      for (int i = 0; i < 9; i++) {
+        if (engine.miniWins[i] == "" && engine.board[i].contains("")) {
+           if (_findWinningMove(i, opponent) != -1) return i;
+        }
+      }
+    }
+    return _getRandomValidGrid();
+  }
+
   int _getRandomValidGrid() {
     List<int> validGrids = [];
     for (int i = 0; i < 9; i++) {
@@ -54,7 +78,7 @@ class BotEngine {
         validGrids.add(i);
       }
     }
-    if (validGrids.isEmpty) return 0; // Fallback
+    if (validGrids.isEmpty) return 0;
     return validGrids[_random.nextInt(validGrids.length)];
   }
 
@@ -68,25 +92,17 @@ class BotEngine {
   }
 
   int _getMediumMove(int gridIdx) {
-    // 1. Try to win the current grid
     int winningMove = _findWinningMove(gridIdx, botSymbol);
     if (winningMove != -1) return winningMove;
 
-    // 2. Try to block the opponent from winning the current grid
     String opponentSymbol = botSymbol == "X" ? "O" : "X";
     int blockingMove = _findWinningMove(gridIdx, opponentSymbol);
     if (blockingMove != -1) return blockingMove;
 
-    // 3. Otherwise, random
     return _getRandomValidSquare(gridIdx);
   }
 
   int _getHardMove(int gridIdx) {
-    // Basic Minimax for the current active grid
-    // For ultimate TTT, full board minimax is too slow. 
-    // We prioritize winning the local grid, blocking, and NOT sending the opponent to a grid where they can win.
-    
-    // First, check immediate win/block
     int winningMove = _findWinningMove(gridIdx, botSymbol);
     if (winningMove != -1) return winningMove;
 
@@ -94,7 +110,6 @@ class BotEngine {
     int blockingMove = _findWinningMove(gridIdx, opponentSymbol);
     if (blockingMove != -1) return blockingMove;
 
-    // If no immediate threat, evaluate all possible moves in this grid
     List<int> emptySquares = [];
     for (int i = 0; i < 9; i++) {
       if (engine.board[gridIdx][i] == "") emptySquares.add(i);
@@ -105,6 +120,66 @@ class BotEngine {
 
     for (int move in emptySquares) {
       int score = _evaluateMove(gridIdx, move, opponentSymbol);
+      if (score > bestScore) {
+        bestScore = score;
+        bestMove = move;
+      }
+    }
+    return bestMove;
+  }
+
+  int _getExtraHardMove(int gridIdx) {
+    // Minimax with depth 5 for the current grid, but considers macro board
+    List<int> emptySquares = [];
+    for (int i = 0; i < 9; i++) {
+      if (engine.board[gridIdx][i] == "") emptySquares.add(i);
+    }
+
+    int bestScore = -10000;
+    int bestMove = emptySquares.isNotEmpty ? emptySquares[0] : -1;
+
+    for (int move in emptySquares) {
+      // 1. Check if this move wins the grid
+      List<String> b = List.from(engine.board[gridIdx]);
+      b[move] = botSymbol;
+      bool winsGrid = _checkSingleWin(b) == botSymbol;
+      
+      int score = 0;
+      if (winsGrid) {
+        score += 50;
+        // Does winning this grid win the WHOLE game?
+        List<String> mw = List.from(engine.miniWins);
+        mw[gridIdx] = botSymbol;
+        if (_checkSingleWin(mw) == botSymbol) score += 1000;
+      }
+
+      // 2. Strategic Positioning
+      if (move == 4) score += 5; // Center
+      if ([0, 2, 6, 8].contains(move)) score += 2; // Corners
+
+      // 3. Opponent's next state
+      if (engine.miniWins[move] != "") {
+        // We sent them to a won grid -> FREE MOVE. Very bad.
+        score -= 30;
+      } else if (!engine.board[move].contains("")) {
+        // Sent to full grid -> FREE MOVE. Very bad.
+        score -= 30;
+      } else {
+        // Where are we sending them?
+        String opponent = botSymbol == "X" ? "O" : "X";
+        int oppWinThere = _findWinningMove(move, opponent);
+        if (oppWinThere != -1) {
+          score -= 40; // They can win that grid immediately
+        }
+        
+        // Block them if they are about to win the big board
+        List<String> mwOpp = List.from(engine.miniWins);
+        mwOpp[move] = opponent;
+        if (_checkSingleWin(mwOpp) == opponent) {
+           score -= 100; // Extremely bad: sends them to a grid they can win to win the game
+        }
+      }
+
       if (score > bestScore) {
         bestScore = score;
         bestMove = move;
@@ -128,25 +203,18 @@ class BotEngine {
 
   int _evaluateMove(int currentGrid, int moveSquare, String opponentSymbol) {
     int score = 0;
-    
-    // Center is good
     if (moveSquare == 4) score += 3;
-    // Corners are okay
     if ([0, 2, 6, 8].contains(moveSquare)) score += 1;
 
-    // BAD: Does this move send the opponent to a grid where they have a winning move?
     if (engine.miniWins[moveSquare] == "") {
        int opponentWinThere = _findWinningMove(moveSquare, opponentSymbol);
        if (opponentWinThere != -1) {
-         score -= 10; // Avoid sending them to a grid they can win
+         score -= 10;
        }
     }
-
-    // VERY BAD: Does this move send the opponent to a 100% full grid, giving them a free move?
     if (!engine.board[moveSquare].contains("")) {
       score -= 15;
     }
-
     return score;
   }
 

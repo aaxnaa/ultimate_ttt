@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_browser_client.dart';
@@ -10,11 +11,16 @@ class NetworkManager extends ChangeNotifier {
   NetworkStatus status = NetworkStatus.idle;
   String? connectedRoomPin;
   String myPlayerName = "";
+  late String _clientId;
 
   // Callback for when data is received
   Function(Map<String, dynamic>)? onDataReceived;
   // Callback for when a player joins
   Function()? onPlayerConnected;
+
+  NetworkManager() {
+    _clientId = 'ttt_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(999)}';
+  }
 
   Future<void> connectToRoom(String pin, String name, bool isHost) async {
     myPlayerName = name;
@@ -23,11 +29,14 @@ class NetworkManager extends ChangeNotifier {
     notifyListeners();
 
     // Use a public MQTT broker (Free, no account needed)
-    client = MqttBrowserClient('wss://broker.emqx.io/mqtt', 'ttt_${DateTime.now().millisecondsSinceEpoch}');
-    client!.port = 8084; // WebSocket port for EMQX
+    client = MqttBrowserClient('wss://broker.emqx.io/mqtt', _clientId);
+    client!.port = 8084;
     client!.keepAlivePeriod = 20;
     client!.onConnected = () => _onConnected(isHost);
     client!.onDisconnected = _onDisconnected;
+    
+    // Auto-reconnect settings
+    client!.autoReconnect = true;
 
     try {
       await client!.connect();
@@ -49,20 +58,26 @@ class NetworkManager extends ChangeNotifier {
       final MqttPublishMessage message = c[0].payload as MqttPublishMessage;
       final payload = MqttPublishPayload.bytesToStringAsString(message.payload.message);
       
-      Map<String, dynamic> data = jsonDecode(payload);
-      
-      // Ignore our own messages
-      if (data['sender'] != myPlayerName) {
-        onDataReceived?.call(data);
-        if (data['type'] == 'JOIN_ANNOUNCE') {
-          onPlayerConnected?.call();
+      try {
+        Map<String, dynamic> data = jsonDecode(payload);
+        
+        // Ignore our own messages using clientId instead of name
+        if (data['cid'] != _clientId) {
+          onDataReceived?.call(data);
+          if (data['type'] == 'JOIN_ANNOUNCE') {
+            onPlayerConnected?.call();
+          }
         }
+      } catch (e) {
+        debugPrint("Error parsing MQTT data: $e");
       }
     });
 
-    // If joining, announce arrival
+    // CRITICAL: Delay the announcement to ensure the subscription is ready
     if (!isHost) {
-      sendData({'type': 'JOIN_ANNOUNCE'});
+      Timer(const Duration(milliseconds: 1000), () {
+        sendData({'type': 'JOIN_ANNOUNCE'});
+      });
     }
     
     notifyListeners();
@@ -76,6 +91,7 @@ class NetworkManager extends ChangeNotifier {
   void sendData(Map<String, dynamic> data) {
     if (client != null && client!.connectionStatus!.state == MqttConnectionState.connected) {
       data['sender'] = myPlayerName;
+      data['cid'] = _clientId; // Unique client ID to prevent self-echo
       final builder = MqttClientPayloadBuilder();
       builder.addString(jsonEncode(data));
       client!.publishMessage('ultimate_ttt_room_$connectedRoomPin', MqttQos.atLeastOnce, builder.payload!);
@@ -89,7 +105,6 @@ class NetworkManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Legacy methods for UI compatibility
   void stopAll() => disconnect();
   Future<void> hostRoom(String pin, String name) => connectToRoom(pin, name, true);
   Future<void> joinRoom(String pin, String name) => connectToRoom(pin, name, false);

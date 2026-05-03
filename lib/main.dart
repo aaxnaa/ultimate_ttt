@@ -32,7 +32,7 @@ class AppState extends ChangeNotifier {
   bool isBotPlay = false;
   BotDifficulty? botDifficulty;
   bool showWonOverlays = true;
-  String lastDebugMessage = "V2.0 READY";
+  String lastDebugMessage = "V2.1 READY";
 
   String get pXDisplay => playerXName.trim().isEmpty ? "Player X" : playerXName;
   String get pODisplay => playerOName.trim().isEmpty ? "Player O" : playerOName;
@@ -57,7 +57,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void startLocalPlay(String p2Name) {
+  void startLocalPlay() {
     isLocalPlay = true;
     isBotPlay = false;
     notifyListeners();
@@ -264,7 +264,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       onPressed: () {
                         appState.myName = _nameCtrl.text;
-                        // Joiner doesn't decide symbol, host dictates it
                         appState.isLocalPlay = false;
                         appState.isBotPlay = false;
                         _showPinDialog(context, false);
@@ -275,7 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               const SizedBox(height: 40),
-              Center(child: Text("VERSION 2.1", style: TextStyle(color: theme.contrastColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1))),
+              Center(child: Text("VERSION 2.1.2", style: TextStyle(color: theme.contrastColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1))),
             ],
           ),
         ),
@@ -310,8 +309,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 appState.playerXName = p2Ctrl.text;
                 appState.myPlayerSymbol = "O";
               }
-              appState.startLocalPlay(p2Ctrl.text);
-              appState.setDebug("V2.1 LOCAL PLAY");
+              appState.startLocalPlay();
               Navigator.pop(ctx);
               Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
             },
@@ -336,6 +334,8 @@ class _HomeScreenState extends State<HomeScreen> {
             _diffBtn(ctx, BotDifficulty.medium, "MEDIUM (Blocks Wins)", Colors.orange),
             const SizedBox(height: 10),
             _diffBtn(ctx, BotDifficulty.hard, "HARD (Minimax)", Colors.red),
+            const SizedBox(height: 10),
+            _diffBtn(ctx, BotDifficulty.extraHard, "EXTRA HARD (Deep Analysis)", Colors.purple),
           ],
         ),
         actions: [
@@ -361,7 +361,6 @@ class _HomeScreenState extends State<HomeScreen> {
           appState.myPlayerSymbol = "O";
         }
         appState.startBotPlay(diff);
-        appState.setDebug("V2.1 BOT PLAY");
         Navigator.pop(ctx);
         Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
       },
@@ -387,14 +386,6 @@ class _HomeScreenState extends State<HomeScreen> {
               Center(child: SizedBox(width: 150, height: 150, child: AnimatedTutorialBoard(theme: theme))),
               const SizedBox(height: 20),
               const Text("3. If sent to a full or won grid, you get a FREE MOVE anywhere.", style: TextStyle(color: Colors.white70, fontSize: 14)),
-              const SizedBox(height: 20),
-              const Text("UI Toggles:", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              Row(children: const [Icon(Icons.layers, color: Colors.white54, size: 16), SizedBox(width: 8), Expanded(child: Text("Hide/Show giant won overlays.", style: TextStyle(color: Colors.white70, fontSize: 12)))]),
-              const SizedBox(height: 5),
-              Row(children: const [Icon(Icons.visibility, color: Colors.white54, size: 16), SizedBox(width: 8), Expanded(child: Text("Analyze Mode: 100% opacity for strategic planning.", style: TextStyle(color: Colors.white70, fontSize: 12)))]),
-              const SizedBox(height: 5),
-              Row(children: const [Icon(Icons.grid_view, color: Colors.white54, size: 16), SizedBox(width: 8), Expanded(child: Text("Toggle tiny Strategic Scoreboard.", style: TextStyle(color: Colors.white70, fontSize: 12)))]),
             ],
           ),
         ),
@@ -428,22 +419,15 @@ class _HomeScreenState extends State<HomeScreen> {
               final net = Provider.of<NetworkManager>(context, listen: false);
               final engine = Provider.of<UltimateTTTEngine>(context, listen: false);
               
-              if (isHost) {
-                net.hostRoom(pin, appState.myName);
-              } else {
-                net.joinRoom(pin, appState.myName);
-              }
-              
+              // SET CALLBACKS FIRST - Critical Fix for Rahul's joining bug
               net.onPlayerConnected = () {
                 if (!isHost) {
-                   // Joiner connects, handshakes with name
                    net.sendData({"type": "JOIN_HELLO", "name": appState.myName});
                 }
               };
               
               net.onDataReceived = (data) {
                 if (isHost && data["type"] == "JOIN_HELLO") {
-                  // Host receives joiner name, updates state and sends sync
                   if (appState.myPlayerSymbol == "X") {
                     appState.playerOName = data["name"];
                   } else {
@@ -466,7 +450,6 @@ class _HomeScreenState extends State<HomeScreen> {
                      Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
                   }
                 } else if (!isHost && data["type"] == "SYNC_SETUP") {
-                  // Joiner receives complete room state
                   appState.updateTheme(ThemeType.values[data["theme"]]);
                   appState.playerXName = data["pX"];
                   appState.playerOName = data["pO"];
@@ -493,11 +476,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 } else if (data["type"] == "RESTART_REQUEST") {
                   engine.setRestartRequested(true);
                 } else if (data["type"] == "RESTART_RESPONSE") {
-                  if (data["accept"]) {
-                    engine.reset();
-                  }
+                  if (data["accept"]) engine.reset();
                 }
               };
+
+              // NOW START CONNECTION
+              if (isHost) {
+                net.hostRoom(pin, appState.myName);
+              } else {
+                net.joinRoom(pin, appState.myName);
+              }
               
               Navigator.pop(ctx);
               Navigator.push(context, MaterialPageRoute(builder: (_) => LobbyScreen(pin: pin, isHost: isHost)));
