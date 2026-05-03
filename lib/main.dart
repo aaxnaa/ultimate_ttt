@@ -83,6 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _p1 = TextEditingController(text: "Aaina");
   final TextEditingController _p2 = TextEditingController(text: "Rahul");
   final TextEditingController _pin = TextEditingController();
+  int _selectedPersona = 1; // 1 for X, 2 for O
 
   @override
   Widget build(BuildContext context) {
@@ -105,18 +106,17 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 20),
               Text("ULTIMATE\nTIC-TAC-TOE", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: theme.playerXColor)),
               const SizedBox(height: 30),
-              TextField(
-                controller: _p1, 
-                style: TextStyle(color: theme.contrastColor),
-                decoration: InputDecoration(labelText: "Player 1 (X)", labelStyle: TextStyle(color: theme.contrastColor.withOpacity(0.7))),
-              ),
-              TextField(
-                controller: _p2, 
-                style: TextStyle(color: theme.contrastColor),
-                decoration: InputDecoration(labelText: "Player 2 (O)", labelStyle: TextStyle(color: theme.contrastColor.withOpacity(0.7))),
-              ),
+              
+              const Text("WHO ARE YOU?", style: TextStyle(color: Colors.white70, fontSize: 10, letterSpacing: 2)),
+              const SizedBox(height: 10),
+              
+              // Persona Selection List
+              _buildPersonaTile(1, "Player 1 (X)", _p1, theme),
+              const SizedBox(height: 10),
+              _buildPersonaTile(2, "Player 2 (O)", _p2, theme),
+
               const SizedBox(height: 30),
-              Text("SELECT THEME", style: TextStyle(color: theme.contrastColor.withOpacity(0.6), fontSize: 12, letterSpacing: 2)),
+              Text("SELECT THEME", style: TextStyle(color: theme.contrastColor.withOpacity(0.6), fontSize: 10, letterSpacing: 2)),
               const SizedBox(height: 15),
               Wrap(
                 spacing: 12,
@@ -124,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: ThemeType.values.map((t) => GestureDetector(
                   onTap: () => appState.updateTheme(t),
                   child: Container(
-                    width: 50, height: 50,
+                    width: 48, height: 48,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: appState.currentThemeType == t ? theme.contrastColor : Colors.transparent, width: 2),
@@ -151,10 +151,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: ElevatedButton.styleFrom(backgroundColor: theme.playerXColor, minimumSize: const Size(0, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
                       onPressed: () {
                         appState.updateNames(_p1.text, _p2.text);
+                        appState.myPlayerSymbol = (_selectedPersona == 1) ? "X" : "O";
                         appState.isLocalPlay = false;
                         _showPinDialog(context, true);
                       },
-                      child: const Text("CREATE ROOM", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: const Text("CREATE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -163,10 +164,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: ElevatedButton.styleFrom(backgroundColor: theme.playerOColor, minimumSize: const Size(0, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
                       onPressed: () {
                         appState.updateNames(_p1.text, _p2.text);
+                        appState.myPlayerSymbol = (_selectedPersona == 1) ? "X" : "O";
                         appState.isLocalPlay = false;
                         _showPinDialog(context, false);
                       },
-                      child: const Text("JOIN ROOM", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: const Text("JOIN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -179,12 +181,40 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildPersonaTile(int index, String label, TextEditingController controller, GameTheme theme) {
+    bool isSelected = _selectedPersona == index;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedPersona = index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: isSelected ? theme.accentColor : Colors.white10),
+        ),
+        child: Row(
+          children: [
+            Icon(isSelected ? Icons.check_circle : Icons.circle_outlined, color: isSelected ? theme.accentColor : Colors.white24),
+            const SizedBox(width: 15),
+            Expanded(
+              child: TextField(
+                controller: controller,
+                style: TextStyle(color: theme.contrastColor, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
+                decoration: InputDecoration(labelText: label, labelStyle: TextStyle(color: theme.contrastColor.withOpacity(0.5), fontSize: 12), border: InputBorder.none),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showPinDialog(BuildContext context, bool isHost) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        title: Text(isHost ? "Room PIN" : "Enter PIN", style: const TextStyle(color: Colors.white)),
+        title: Text(isHost ? "Create Room PIN" : "Join Room PIN", style: const TextStyle(color: Colors.white)),
         content: TextField(
           controller: _pin,
           maxLength: 4,
@@ -201,10 +231,8 @@ class _HomeScreenState extends State<HomeScreen> {
               final engine = Provider.of<UltimateTTTEngine>(context, listen: false);
               
               if (isHost) {
-                appState.myPlayerSymbol = "X";
                 net.hostRoom(pin, appState.player1Name);
               } else {
-                appState.myPlayerSymbol = "O";
                 net.joinRoom(pin, appState.player2Name);
               }
               
@@ -216,6 +244,10 @@ class _HomeScreenState extends State<HomeScreen> {
                      "p1": appState.player1Name,
                      "p2": appState.player2Name,
                    });
+                }
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
                 }
               };
               
@@ -237,11 +269,58 @@ class _HomeScreenState extends State<HomeScreen> {
               };
               
               Navigator.pop(ctx);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
+              Navigator.push(context, MaterialPageRoute(builder: (_) => LobbyScreen(pin: pin, isHost: isHost)));
             },
-            child: const Text("START MATCH"),
+            child: const Text("GO"),
           )
         ],
+      ),
+    );
+  }
+}
+
+class LobbyScreen extends StatelessWidget {
+  final String pin;
+  final bool isHost;
+  const LobbyScreen({super.key, required this.pin, required this.isHost});
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final theme = GameTheme.getTheme(appState.currentThemeType);
+    final opponentName = isHost ? appState.player2Name : appState.player1Name;
+
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [theme.background, theme.secondaryBackground],
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("ROOM PIN", style: TextStyle(color: theme.contrastColor.withOpacity(0.6), letterSpacing: 2, fontSize: 12)),
+              Text(pin, style: TextStyle(color: theme.playerXColor, fontSize: 60, fontWeight: FontWeight.bold, letterSpacing: 10)),
+              const SizedBox(height: 40),
+              const CircularProgressIndicator(color: Colors.white24),
+              const SizedBox(height: 40),
+              Text("WAITING FOR OPPONENT...", 
+                style: TextStyle(color: theme.contrastColor, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
+              const SizedBox(height: 60),
+              TextButton(
+                onPressed: () {
+                  Provider.of<NetworkManager>(context, listen: false).stopAll();
+                  Navigator.pop(context);
+                },
+                child: Text("CANCEL", style: TextStyle(color: theme.contrastColor.withOpacity(0.5))),
+              )
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -272,7 +351,6 @@ class GameScreen extends StatelessWidget {
         child: SafeArea(
           child: Column(
             children: [
-              // Status Bar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
@@ -284,7 +362,6 @@ class GameScreen extends StatelessWidget {
                       Navigator.pop(context);
                     }, icon: Icon(Icons.close, color: theme.contrastColor, size: 24)),
                     
-                    // Tiny Scoreboard
                     if (appState.showScoreboard)
                       Container(
                         width: 45, height: 45,
@@ -328,7 +405,6 @@ class GameScreen extends StatelessWidget {
                 ),
               ),
 
-              // Game Board
               Expanded(
                 child: Center(
                   child: Padding(
@@ -350,7 +426,6 @@ class GameScreen extends StatelessWidget {
                 ),
               ),
 
-              // Turn Indicator
               Padding(
                 padding: const EdgeInsets.only(bottom: 40, top: 20),
                 child: Text("${turnText.toUpperCase()}'S TURN - ${appState.isLocalPlay || engine.currentPlayer == appState.myPlayerSymbol ? 'GO' : 'WAIT'}", 
@@ -383,7 +458,7 @@ class MiniBoardWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         border: isActive 
           ? Border.all(color: theme.accentColor, width: 3) 
-          : (isBolded ? Border.all(color: theme.contrastColor.withOpacity(0.5), width: 2) : Border.all(color: theme.contrastColor.withOpacity(0.1), width: 1)),
+          : (isBolded ? Border.all(color: theme.contrastColor.withOpacity(0.5), width: 2) : Border.all(color: theme.contrastColor.withOpacity(0.3), width: 1)),
       ),
       child: Stack(
         children: [
@@ -403,14 +478,13 @@ class MiniBoardWidget extends StatelessWidget {
                   }
                 },
                 child: Container(
-                  decoration: BoxDecoration(border: Border.all(color: theme.contrastColor.withOpacity(0.1), width: 0.5)),
+                  decoration: BoxDecoration(border: Border.all(color: theme.contrastColor.withOpacity(0.2), width: 1.0)),
                   child: Center(
                     child: Text(val, style: TextStyle(
-                      color: val == "X" 
-                        ? theme.playerXColor.withOpacity(isActive || appState.analyzeMode ? 1.0 : 0.6) 
-                        : theme.playerOColor.withOpacity(isActive || appState.analyzeMode ? 1.0 : 0.6), 
+                      color: val == "X" ? theme.playerXColor : theme.playerOColor, 
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
+                      opacity: isActive || appState.analyzeMode ? 1.0 : 0.6
                     )),
                   ),
                 ),
