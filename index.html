@@ -1,19 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="/ultimate_ttt/">
 
   <meta charset="UTF-8">
@@ -32,19 +19,29 @@
   <title>Ultimate Tic-Tac-Toe</title>
   <link rel="manifest" href="manifest.json">
 
-  <script>
-    // The value below is injected by flutter build, do not touch.
-    const serviceWorkerVersion = "4171709784" /* Flutter's service worker is deprecated and will be removed in a future Flutter release. */;
-  </script>
-  <!-- This script adds the flutter initialization JS code -->
-  <script src="flutter.js" defer></script>
+  <style>
+    body {
+      background-color: #0d0221;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: sans-serif;
+    }
+    .loading-text { font-size: 20px; letter-spacing: 2px; }
+  </style>
 </head>
 <body>
+  <div id="loading" class="loading-text">LOADING ULTIMATE TTT...</div>
+  <script src="flutter.js" defer></script>
   <script>
     window.addEventListener('load', function(ev) {
-      _flutter.loader.load({
+      _flutter.loader.loadEntrypoint({
         onEntrypointLoaded: function(engineInitializer) {
           engineInitializer.initializeEngine().then(function(appRunner) {
+            document.getElementById('loading').remove();
             appRunner.runApp();
           });
         }
