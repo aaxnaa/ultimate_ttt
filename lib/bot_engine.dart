@@ -158,6 +158,3 @@ class BotEngine {
     return "";
   }
 }
-;
-  }
-}
