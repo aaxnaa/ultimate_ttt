@@ -18,10 +18,14 @@ void main() {
   );
 }
 
+enum HomeStage { welcome, modeSelect, localSetup, onlineChoice, onlineCreate, onlineJoin, aiSetup }
+
 class AppState extends ChangeNotifier {
   ThemeType currentThemeType = ThemeType.nighttime;
+  HomeStage currentStage = HomeStage.welcome;
   
   String myName = "";
+  String opponentName = "";
   String playerXName = "";
   String playerOName = "";
   String? myPlayerSymbol;
@@ -32,10 +36,15 @@ class AppState extends ChangeNotifier {
   bool isBotPlay = false;
   BotDifficulty? botDifficulty;
   bool showWonOverlays = true;
-  String lastDebugMessage = "V2.1 READY";
+  String lastDebugMessage = "V2.2 READY";
 
   String get pXDisplay => playerXName.trim().isEmpty ? "Player X" : playerXName;
   String get pODisplay => playerOName.trim().isEmpty ? "Player O" : playerOName;
+
+  void setStage(HomeStage stage) {
+    currentStage = stage;
+    notifyListeners();
+  }
 
   void updateTheme(ThemeType type) {
     currentThemeType = type;
@@ -57,21 +66,13 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void startLocalPlay() {
-    isLocalPlay = true;
-    isBotPlay = false;
-    notifyListeners();
-  }
-
-  void startBotPlay(BotDifficulty diff) {
-    isLocalPlay = false;
-    isBotPlay = true;
-    botDifficulty = diff;
-    notifyListeners();
-  }
-
   void setDebug(String msg) {
     lastDebugMessage = msg;
+    notifyListeners();
+  }
+
+  void resetHome() {
+    currentStage = HomeStage.welcome;
     notifyListeners();
   }
 }
@@ -103,8 +104,10 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _nameCtrl = TextEditingController();
-  final TextEditingController _pin = TextEditingController();
-  int _selectedPersona = 1; // 1 for X, 2 for O
+  final TextEditingController _p2Ctrl = TextEditingController();
+  final TextEditingController _pinCtrl = TextEditingController();
+  String _selectedSymbol = "X";
+  BotDifficulty _selectedDiff = BotDifficulty.medium;
 
   @override
   Widget build(BuildContext context) {
@@ -121,160 +124,19 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.all(24),
+          child: Column(
             children: [
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text("ULTIMATE\nTIC-TAC-TOE", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: theme.playerXColor)),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.help_outline, color: theme.contrastColor, size: 28),
-                        onPressed: () => _showTutorialDialog(context, theme),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.settings, color: theme.contrastColor, size: 28),
-                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 40),
-              
-              Text("YOUR NAME", style: TextStyle(color: theme.contrastColor.withOpacity(0.7), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2)),
-              const SizedBox(height: 12),
-              
-              TextField(
-                controller: _nameCtrl,
-                style: TextStyle(color: theme.contrastColor, fontWeight: FontWeight.bold, fontSize: 18),
-                decoration: InputDecoration(
-                  hintText: "Enter your name...",
-                  hintStyle: TextStyle(color: theme.contrastColor.withOpacity(0.3)),
-                  filled: true,
-                  fillColor: Colors.black12,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+              _buildHeader(context, theme),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: _buildStageContent(context, appState, theme),
                 ),
               ),
-
-              const SizedBox(height: 30),
-              Text("I WANT TO PLAY AS:", style: TextStyle(color: theme.contrastColor.withOpacity(0.7), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2)),
-              const SizedBox(height: 12),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _selectedPersona = 1),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          color: _selectedPersona == 1 ? theme.playerXColor.withOpacity(0.2) : Colors.black12,
-                          borderRadius: BorderRadius.circular(15),
-                          border: Border.all(color: _selectedPersona == 1 ? theme.playerXColor : Colors.transparent, width: 2),
-                        ),
-                        child: Center(child: Text("X", style: TextStyle(color: theme.playerXColor, fontSize: 24, fontWeight: FontWeight.bold))),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _selectedPersona = 2),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          color: _selectedPersona == 2 ? theme.playerOColor.withOpacity(0.2) : Colors.black12,
-                          borderRadius: BorderRadius.circular(15),
-                          border: Border.all(color: _selectedPersona == 2 ? theme.playerOColor : Colors.transparent, width: 2),
-                        ),
-                        child: Center(child: Text("O", style: TextStyle(color: theme.playerOColor, fontSize: 24, fontWeight: FontWeight.bold))),
-                      ),
-                    ),
-                  ),
-                ],
+              Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: Text("VERSION 2.2", style: TextStyle(color: theme.contrastColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1)),
               ),
-
-              const SizedBox(height: 50),
-              
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.accentColor, 
-                  foregroundColor: Colors.white, 
-                  minimumSize: const Size(double.infinity, 55), 
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                  side: const BorderSide(color: Colors.white54, width: 2),
-                ),
-                onPressed: () => _showLocalPlayDialog(context),
-                child: const Text("LOCAL PASS & PLAY", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center),
-              ),
-              const SizedBox(height: 15),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white12, 
-                  foregroundColor: Colors.white, 
-                  minimumSize: const Size(double.infinity, 55), 
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                  side: BorderSide(color: theme.contrastColor.withOpacity(0.5), width: 2),
-                ),
-                onPressed: () => _showDifficultyDialog(context),
-                child: const Text("PLAY VS AI", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center),
-              ),
-              const SizedBox(height: 15),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.playerXColor, 
-                        foregroundColor: Colors.white, 
-                        minimumSize: const Size(0, 55), 
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                        side: BorderSide(color: theme.contrastColor.withOpacity(0.5), width: 2),
-                      ),
-                      onPressed: () {
-                        appState.myName = _nameCtrl.text;
-                        appState.myPlayerSymbol = (_selectedPersona == 1) ? "X" : "O";
-                        if (appState.myPlayerSymbol == "X") {
-                          appState.playerXName = appState.myName;
-                          appState.playerOName = "Waiting...";
-                        } else {
-                          appState.playerOName = appState.myName;
-                          appState.playerXName = "Waiting...";
-                        }
-                        appState.isLocalPlay = false;
-                        appState.isBotPlay = false;
-                        _showPinDialog(context, true);
-                      },
-                      child: const Text("CREATE ROOM", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.playerOColor, 
-                        foregroundColor: Colors.white, 
-                        minimumSize: const Size(0, 55), 
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                        side: BorderSide(color: theme.contrastColor.withOpacity(0.5), width: 2),
-                      ),
-                      onPressed: () {
-                        appState.myName = _nameCtrl.text;
-                        appState.isLocalPlay = false;
-                        appState.isBotPlay = false;
-                        _showPinDialog(context, false);
-                      },
-                      child: const Text("JOIN ROOM", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 40),
-              Center(child: Text("VERSION 2.1.2", style: TextStyle(color: theme.contrastColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1))),
             ],
           ),
         ),
@@ -282,90 +144,334 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showLocalPlayDialog(BuildContext context) {
-    TextEditingController p2Ctrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text("Local Play", style: TextStyle(color: Colors.white)),
-        content: TextField(
-          controller: p2Ctrl,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(hintText: "Player 2 Name (Optional)", hintStyle: TextStyle(color: Colors.white30)),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(color: Colors.white54))),
-          ElevatedButton(
-            onPressed: () {
-              final appState = Provider.of<AppState>(context, listen: false);
-              appState.myName = _nameCtrl.text;
-              if (_selectedPersona == 1) {
-                appState.playerXName = appState.myName;
-                appState.playerOName = p2Ctrl.text;
-                appState.myPlayerSymbol = "X";
-              } else {
-                appState.playerOName = appState.myName;
-                appState.playerXName = p2Ctrl.text;
-                appState.myPlayerSymbol = "O";
-              }
-              appState.startLocalPlay();
-              Navigator.pop(ctx);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
-            },
-            child: const Text("START"),
-          )
-        ],
-      )
-    );
-  }
-
-  void _showDifficultyDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text("Select Difficulty", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _diffBtn(ctx, BotDifficulty.easy, "EASY (Random)", Colors.green),
-            const SizedBox(height: 10),
-            _diffBtn(ctx, BotDifficulty.medium, "MEDIUM (Blocks Wins)", Colors.orange),
-            const SizedBox(height: 10),
-            _diffBtn(ctx, BotDifficulty.hard, "HARD (Minimax)", Colors.red),
-            const SizedBox(height: 10),
-            _diffBtn(ctx, BotDifficulty.extraHard, "EXTRA HARD (Deep Analysis)", Colors.purple),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(color: Colors.white54))),
+  Widget _buildHeader(BuildContext context, GameTheme theme) {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text("ULTIMATE\nTIC-TAC-TOE", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: theme.playerXColor, height: 1)),
+          Row(
+            children: [
+              IconButton(icon: Icon(Icons.help_outline, color: theme.contrastColor), onPressed: () => _showTutorialDialog(context, theme)),
+              IconButton(icon: Icon(Icons.palette_outlined, color: theme.contrastColor), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _diffBtn(BuildContext ctx, BotDifficulty diff, String label, Color color) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(backgroundColor: color, minimumSize: const Size(double.infinity, 45)),
-      onPressed: () {
-        final appState = Provider.of<AppState>(context, listen: false);
-        appState.myName = _nameCtrl.text;
-        if (_selectedPersona == 1) {
-          appState.playerXName = appState.myName;
-          appState.playerOName = "Bot (${diff.name.toUpperCase()})";
-          appState.myPlayerSymbol = "X";
-        } else {
-          appState.playerOName = appState.myName;
-          appState.playerXName = "Bot (${diff.name.toUpperCase()})";
-          appState.myPlayerSymbol = "O";
-        }
-        appState.startBotPlay(diff);
-        Navigator.pop(ctx);
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
-      },
-      child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+  Widget _buildStageContent(BuildContext context, AppState appState, GameTheme theme) {
+    switch (appState.currentStage) {
+      case HomeStage.welcome:
+        return _buildWelcome(appState, theme);
+      case HomeStage.modeSelect:
+        return _buildModeSelect(appState, theme);
+      case HomeStage.localSetup:
+        return _buildLocalSetup(appState, theme);
+      case HomeStage.onlineChoice:
+        return _buildOnlineChoice(appState, theme);
+      case HomeStage.onlineCreate:
+        return _buildOnlineCreate(appState, theme);
+      case HomeStage.onlineJoin:
+        return _buildOnlineJoin(appState, theme);
+      case HomeStage.aiSetup:
+        return _buildAiSetup(appState, theme);
+    }
+  }
+
+  Widget _buildWelcome(AppState appState, GameTheme theme) {
+    return Column(
+      children: [
+        const SizedBox(height: 40),
+        _sectionLabel(theme, "GET STARTED"),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _nameCtrl,
+          style: TextStyle(color: theme.contrastColor, fontWeight: FontWeight.bold),
+          decoration: _inputDeco(theme, "Your Name"),
+        ),
+        const SizedBox(height: 40),
+        _bigBtn(theme, "CONTINUE", theme.accentColor, () {
+          appState.myName = _nameCtrl.text.isEmpty ? "Player" : _nameCtrl.text;
+          appState.setStage(HomeStage.modeSelect);
+        }),
+      ],
     );
+  }
+
+  Widget _buildModeSelect(AppState appState, GameTheme theme) {
+    return Column(
+      children: [
+        _sectionLabel(theme, "SELECT GAME MODE"),
+        const SizedBox(height: 20),
+        _modeBtn(theme, "LOCAL PASS & PLAY", Icons.phonelink_setup, () => appState.setStage(HomeStage.localSetup)),
+        const SizedBox(height: 15),
+        _modeBtn(theme, "PLAY VS HUMAN (ONLINE)", Icons.public, () => appState.setStage(HomeStage.onlineChoice)),
+        const SizedBox(height: 15),
+        _modeBtn(theme, "PLAY VS AI", Icons.smart_toy_outlined, () => appState.setStage(HomeStage.aiSetup)),
+        const SizedBox(height: 30),
+        TextButton(onPressed: () => appState.setStage(HomeStage.welcome), child: Text("BACK", style: TextStyle(color: theme.contrastColor.withOpacity(0.5)))),
+      ],
+    );
+  }
+
+  Widget _buildLocalSetup(AppState appState, GameTheme theme) {
+    return Column(
+      children: [
+        _sectionLabel(theme, "LOCAL PLAY SETUP"),
+        const SizedBox(height: 20),
+        TextField(controller: _p2Ctrl, style: TextStyle(color: theme.contrastColor), decoration: _inputDeco(theme, "Opponent Name")),
+        const SizedBox(height: 30),
+        _bigBtn(theme, "START MATCH", theme.accentColor, () {
+          appState.isLocalPlay = true;
+          appState.isBotPlay = false;
+          appState.playerXName = appState.myName;
+          appState.playerOName = _p2Ctrl.text.isEmpty ? "Player 2" : _p2Ctrl.text;
+          appState.myPlayerSymbol = "X"; // Host of local is X
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
+        }),
+        TextButton(onPressed: () => appState.setStage(HomeStage.modeSelect), child: Text("BACK", style: TextStyle(color: theme.contrastColor.withOpacity(0.5)))),
+      ],
+    );
+  }
+
+  Widget _buildOnlineChoice(AppState appState, GameTheme theme) {
+    return Column(
+      children: [
+        _sectionLabel(theme, "MULTIPLAYER"),
+        const SizedBox(height: 20),
+        _bigBtn(theme, "CREATE A ROOM", theme.playerXColor, () => appState.setStage(HomeStage.onlineCreate)),
+        const SizedBox(height: 15),
+        _bigBtn(theme, "JOIN A ROOM", theme.playerOColor, () => appState.setStage(HomeStage.onlineJoin)),
+        const SizedBox(height: 30),
+        TextButton(onPressed: () => appState.setStage(HomeStage.modeSelect), child: Text("BACK", style: TextStyle(color: theme.contrastColor.withOpacity(0.5)))),
+      ],
+    );
+  }
+
+  Widget _buildOnlineCreate(AppState appState, GameTheme theme) {
+    return Column(
+      children: [
+        _sectionLabel(theme, "CREATE ROOM"),
+        const SizedBox(height: 20),
+        _symbolPicker(theme),
+        const SizedBox(height: 25),
+        TextField(controller: _pinCtrl, maxLength: 4, keyboardType: TextInputType.number, style: TextStyle(color: theme.contrastColor), decoration: _inputDeco(theme, "Set 4-Digit PIN")),
+        const SizedBox(height: 30),
+        _bigBtn(theme, "CREATE & WAIT", theme.accentColor, () {
+          appState.myPlayerSymbol = _selectedSymbol;
+          if (_selectedSymbol == "X") {
+            appState.playerXName = appState.myName;
+            appState.playerOName = "Waiting...";
+          } else {
+            appState.playerOName = appState.myName;
+            appState.playerXName = "Waiting...";
+          }
+          _startOnlineGame(context, _pinCtrl.text, true);
+        }),
+        TextButton(onPressed: () => appState.setStage(HomeStage.onlineChoice), child: Text("BACK", style: TextStyle(color: theme.contrastColor.withOpacity(0.5)))),
+      ],
+    );
+  }
+
+  Widget _buildOnlineJoin(AppState appState, GameTheme theme) {
+    return Column(
+      children: [
+        _sectionLabel(theme, "JOIN ROOM"),
+        const SizedBox(height: 20),
+        TextField(controller: _pinCtrl, maxLength: 4, keyboardType: TextInputType.number, style: TextStyle(color: theme.contrastColor), decoration: _inputDeco(theme, "Enter Room PIN")),
+        const SizedBox(height: 30),
+        _bigBtn(theme, "JOIN MATCH", theme.accentColor, () {
+          _startOnlineGame(context, _pinCtrl.text, false);
+        }),
+        TextButton(onPressed: () => appState.setStage(HomeStage.onlineChoice), child: Text("BACK", style: TextStyle(color: theme.contrastColor.withOpacity(0.5)))),
+      ],
+    );
+  }
+
+  Widget _buildAiSetup(AppState appState, GameTheme theme) {
+    return Column(
+      children: [
+        _sectionLabel(theme, "VS TIC-TAC-TRON"),
+        const SizedBox(height: 20),
+        _diffPicker(theme),
+        const SizedBox(height: 25),
+        _symbolPicker(theme),
+        const SizedBox(height: 30),
+        _bigBtn(theme, "START AI MATCH", theme.accentColor, () {
+          appState.isLocalPlay = false;
+          appState.isBotPlay = true;
+          appState.botDifficulty = _selectedDiff;
+          if (_selectedSymbol == "X") {
+            appState.playerXName = appState.myName;
+            appState.playerOName = "Tic-Tac-Tron";
+            appState.myPlayerSymbol = "X";
+          } else {
+            appState.playerOName = appState.myName;
+            appState.playerXName = "Tic-Tac-Tron";
+            appState.myPlayerSymbol = "O";
+          }
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
+        }),
+        TextButton(onPressed: () => appState.setStage(HomeStage.modeSelect), child: Text("BACK", style: TextStyle(color: theme.contrastColor.withOpacity(0.5)))),
+      ],
+    );
+  }
+
+  Widget _sectionLabel(GameTheme theme, String text) => Text(text, style: TextStyle(color: theme.contrastColor.withOpacity(0.6), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 2));
+
+  Widget _modeBtn(GameTheme theme, String text, IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(20), border: Border.all(color: theme.contrastColor.withOpacity(0.1))),
+        child: Row(
+          children: [
+            Icon(icon, color: theme.accentColor, size: 30),
+            const SizedBox(width: 20),
+            Text(text, style: TextStyle(color: theme.contrastColor, fontWeight: FontWeight.bold, fontSize: 14)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _bigBtn(GameTheme theme, String text, Color color, VoidCallback onTap) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 60), 
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)), elevation: 10, shadowColor: color.withOpacity(0.4),
+      ),
+      onPressed: onTap,
+      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+    );
+  }
+
+  InputDecoration _inputDeco(GameTheme theme, String hint) => InputDecoration(
+    hintText: hint, hintStyle: TextStyle(color: theme.contrastColor.withOpacity(0.3)), filled: true, fillColor: Colors.black12,
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(20),
+  );
+
+  Widget _symbolPicker(GameTheme theme) {
+    return Row(
+      children: ["X", "O"].map((s) => Expanded(
+        child: GestureDetector(
+          onTap: () => setState(() => _selectedSymbol = s),
+          child: Container(
+            margin: EdgeInsets.only(right: s == "X" ? 10 : 0, left: s == "O" ? 10 : 0),
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            decoration: BoxDecoration(
+              color: _selectedSymbol == s ? (s == "X" ? theme.playerXColor : theme.playerOColor).withOpacity(0.2) : Colors.black12,
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: _selectedSymbol == s ? (s == "X" ? theme.playerXColor : theme.playerOColor) : Colors.transparent, width: 3),
+            ),
+            child: Center(child: Text(s, style: TextStyle(color: s == "X" ? theme.playerXColor : theme.playerOColor, fontSize: 28, fontWeight: FontWeight.bold))),
+          ),
+        ),
+      )).toList(),
+    );
+  }
+
+  Widget _diffPicker(GameTheme theme) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(15)),
+      child: Row(
+        children: BotDifficulty.values.map((d) => Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _selectedDiff = d),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: _selectedDiff == d ? theme.accentColor : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(child: Text(d.name[0].toUpperCase(), style: TextStyle(color: _selectedDiff == d ? Colors.white : theme.contrastColor.withOpacity(0.5), fontWeight: FontWeight.bold))),
+            ),
+          ),
+        )).toList(),
+      ),
+    );
+  }
+
+  void _startOnlineGame(BuildContext context, String pin, bool isHost) {
+    final appState = Provider.of<AppState>(context, listen: false);
+    final net = Provider.of<NetworkManager>(context, listen: false);
+    final engine = Provider.of<UltimateTTTEngine>(context, listen: false);
+
+    // 1. CLEAR OLD CALLBACKS
+    net.onPlayerConnected = null;
+    net.onDataReceived = null;
+
+    // 2. SET NEW CALLBACKS (THE HANDSHAKE)
+    net.onDataReceived = (data) {
+      if (isHost && data["type"] == "JOIN_REQ") {
+        // Host sees joiner, updates state
+        if (appState.myPlayerSymbol == "X") {
+          appState.playerOName = data["name"];
+        } else {
+          appState.playerXName = data["name"];
+        }
+        appState.notifyListeners();
+        // Send full state to joiner
+        net.sendData({
+           "type": "SYNC_ACCEPT",
+           "theme": appState.currentThemeType.index,
+           "pX": appState.playerXName,
+           "pO": appState.playerOName,
+           "hostSymbol": appState.myPlayerSymbol,
+           "board": engine.board,
+           "miniWins": engine.miniWins,
+           "activeMiniGrid": engine.activeMiniGrid,
+           "currentPlayer": engine.currentPlayer,
+        });
+        // Both move to game screen
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
+        }
+      } else if (!isHost && data["type"] == "SYNC_ACCEPT") {
+        // Joiner receives final state
+        appState.updateTheme(ThemeType.values[data["theme"]]);
+        appState.playerXName = data["pX"];
+        appState.playerOName = data["pO"];
+        appState.myPlayerSymbol = data["hostSymbol"] == "X" ? "O" : "X";
+        
+        List<dynamic> bRaw = data["board"];
+        engine.board = bRaw.map((r) => (r as List<dynamic>).map((c) => c.toString()).toList()).toList();
+        List<dynamic> mwRaw = data["miniWins"];
+        engine.miniWins = mwRaw.map((e) => e.toString()).toList();
+        engine.activeMiniGrid = data["activeMiniGrid"];
+        engine.currentPlayer = data["currentPlayer"] ?? "X";
+        engine.notifyListeners();
+
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
+        }
+      } else if (data["type"] == "MOVE") {
+        engine.makeMove(data["subGrid"], data["square"]);
+      } else if (data["type"] == "DRAW_VOTE") {
+        engine.castDrawVote(data["vote"], false, false);
+      } else if (data["type"] == "RESTART_REQUEST") {
+        engine.setRestartRequested(true);
+      } else if (data["type"] == "RESTART_RESPONSE") {
+        if (data["accept"]) engine.reset();
+      }
+    };
+
+    // 3. CONNECT
+    if (isHost) {
+      net.hostRoom(pin, appState.myName);
+    } else {
+      net.joinRoom(pin, appState.myName);
+      // Joiner will send JOIN_REQ automatically via network_manager.dart's connection success
+    }
+
+    Navigator.push(context, MaterialPageRoute(builder: (_) => LobbyScreen(pin: pin, isHost: isHost)));
   }
 
   void _showTutorialDialog(BuildContext context, GameTheme theme) {
@@ -381,117 +487,16 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               const Text("1. Win a small grid to claim that spot on the big board.", style: TextStyle(color: Colors.white70, fontSize: 14)),
               const SizedBox(height: 20),
-              const Text("2. Your move dictates where your opponent must play. Notice how playing in the top-right sends the opponent to the top-right large grid:", style: TextStyle(color: Colors.white70, fontSize: 14)),
+              const Text("2. Your move dictates where your opponent must play.", style: TextStyle(color: Colors.white70, fontSize: 14)),
               const SizedBox(height: 15),
               Center(child: SizedBox(width: 150, height: 150, child: AnimatedTutorialBoard(theme: theme))),
               const SizedBox(height: 20),
-              const Text("3. If sent to a full or won grid, you get a FREE MOVE anywhere.", style: TextStyle(color: Colors.white70, fontSize: 14)),
+              const Text("3. X always starts the match.", style: TextStyle(color: Colors.white70, fontSize: 14)),
             ],
           ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text("GOT IT", style: TextStyle(color: theme.accentColor, fontWeight: FontWeight.bold))),
-        ],
-      ),
-    );
-  }
-
-  void _showPinDialog(BuildContext context, bool isHost) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: Text(isHost ? "Create Room PIN" : "Join Room PIN", style: const TextStyle(color: Colors.white)),
-        content: TextField(
-          controller: _pin,
-          maxLength: 4,
-          style: const TextStyle(color: Colors.white),
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(hintText: "e.g. 1234", hintStyle: TextStyle(color: Colors.white24)),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(color: Colors.white54))),
-          ElevatedButton(
-            onPressed: () {
-              final pin = _pin.text;
-              final appState = Provider.of<AppState>(context, listen: false);
-              final net = Provider.of<NetworkManager>(context, listen: false);
-              final engine = Provider.of<UltimateTTTEngine>(context, listen: false);
-              
-              // SET CALLBACKS FIRST - Critical Fix for Rahul's joining bug
-              net.onPlayerConnected = () {
-                if (!isHost) {
-                   net.sendData({"type": "JOIN_HELLO", "name": appState.myName});
-                }
-              };
-              
-              net.onDataReceived = (data) {
-                if (isHost && data["type"] == "JOIN_HELLO") {
-                  if (appState.myPlayerSymbol == "X") {
-                    appState.playerOName = data["name"];
-                  } else {
-                    appState.playerXName = data["name"];
-                  }
-                  appState.notifyListeners();
-                  net.sendData({
-                     "type": "SYNC_SETUP",
-                     "theme": appState.currentThemeType.index,
-                     "pX": appState.playerXName,
-                     "pO": appState.playerOName,
-                     "hostSymbol": appState.myPlayerSymbol,
-                     "board": engine.board,
-                     "miniWins": engine.miniWins,
-                     "activeMiniGrid": engine.activeMiniGrid,
-                     "currentPlayer": engine.currentPlayer,
-                  });
-                  if (Navigator.canPop(context)) {
-                     Navigator.pop(context);
-                     Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
-                  }
-                } else if (!isHost && data["type"] == "SYNC_SETUP") {
-                  appState.updateTheme(ThemeType.values[data["theme"]]);
-                  appState.playerXName = data["pX"];
-                  appState.playerOName = data["pO"];
-                  appState.myPlayerSymbol = data["hostSymbol"] == "X" ? "O" : "X";
-                  
-                  if (data["board"] != null) {
-                    List<dynamic> bRaw = data["board"];
-                    engine.board = bRaw.map((r) => (r as List<dynamic>).map((c) => c.toString()).toList()).toList();
-                    List<dynamic> mwRaw = data["miniWins"];
-                    engine.miniWins = mwRaw.map((e) => e.toString()).toList();
-                    engine.activeMiniGrid = data["activeMiniGrid"];
-                    engine.currentPlayer = data["currentPlayer"] ?? "X";
-                    engine.notifyListeners();
-                  }
-
-                  if (Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
-                  }
-                } else if (data["type"] == "MOVE") {
-                  engine.makeMove(data["subGrid"], data["square"]);
-                } else if (data["type"] == "DRAW_VOTE") {
-                  engine.castDrawVote(data["vote"], false, false);
-                } else if (data["type"] == "RESTART_REQUEST") {
-                  engine.setRestartRequested(true);
-                } else if (data["type"] == "RESTART_RESPONSE") {
-                  if (data["accept"]) engine.reset();
-                }
-              };
-
-              // NOW START CONNECTION
-              if (isHost) {
-                net.hostRoom(pin, appState.myName);
-              } else {
-                net.joinRoom(pin, appState.myName);
-              }
-              
-              Navigator.pop(ctx);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => LobbyScreen(pin: pin, isHost: isHost)));
-            },
-            child: const Text("GO"),
-          )
         ],
       ),
     );
@@ -706,6 +711,7 @@ class _GameScreenState extends State<GameScreen> {
                         IconButton(onPressed: () {
                           net.stopAll();
                           engine.reset();
+                          appState.resetHome();
                           Navigator.pop(context);
                         }, icon: Icon(Icons.close, color: theme.contrastColor, size: 28)),
                         if (appState.showScoreboard)

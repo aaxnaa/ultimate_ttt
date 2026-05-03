@@ -29,14 +29,12 @@ class NetworkManager extends ChangeNotifier {
     status = isHost ? NetworkStatus.hosting : NetworkStatus.discovering;
     notifyListeners();
 
-    // Use a public MQTT broker (Free, no account needed)
+    // PUBLIC MQTT BROKER
     client = MqttBrowserClient('wss://broker.emqx.io/mqtt', _clientId);
     client!.port = 8084;
     client!.keepAlivePeriod = 20;
     client!.onConnected = () => _onConnected(isHost);
     client!.onDisconnected = _onDisconnected;
-    
-    // Auto-reconnect settings
     client!.autoReconnect = true;
 
     try {
@@ -50,34 +48,28 @@ class NetworkManager extends ChangeNotifier {
   void _onConnected(bool isHost) {
     status = NetworkStatus.connected;
     
-    // Subscribe to the room's topic
     final topic = 'ultimate_ttt_room_$connectedRoomPin';
     client!.subscribe(topic, MqttQos.atLeastOnce);
 
-    // Listen for messages
     client!.updates!.listen((List<MqttReceivedMessage<MqttMessage>> c) {
       final MqttPublishMessage message = c[0].payload as MqttPublishMessage;
       final payload = MqttPublishPayload.bytesToStringAsString(message.payload.message);
       
       try {
         Map<String, dynamic> data = jsonDecode(payload);
-        
-        // Ignore our own messages using clientId instead of name
+        // Ignore our own messages
         if (data['cid'] != _clientId) {
           onDataReceived?.call(data);
-          if (data['type'] == 'JOIN_ANNOUNCE') {
-            onPlayerConnected?.call();
-          }
         }
       } catch (e) {
         debugPrint("Error parsing MQTT data: $e");
       }
     });
 
-    // CRITICAL: Delay the announcement to ensure the subscription is ready
+    // HANDSHAKE: Joiner announces arrival after a short delay
     if (!isHost) {
-      Timer(const Duration(milliseconds: 1000), () {
-        sendData({'type': 'JOIN_ANNOUNCE'});
+      Timer(const Duration(milliseconds: 1200), () {
+        sendData({'type': 'JOIN_REQ', 'name': myPlayerName});
       });
     }
     
@@ -92,7 +84,7 @@ class NetworkManager extends ChangeNotifier {
   void sendData(Map<String, dynamic> data) {
     if (client != null && client!.connectionStatus!.state == MqttConnectionState.connected) {
       data['sender'] = myPlayerName;
-      data['cid'] = _clientId; // Unique client ID to prevent self-echo
+      data['cid'] = _clientId;
       final builder = MqttClientPayloadBuilder();
       builder.addString(jsonEncode(data));
       client!.publishMessage('ultimate_ttt_room_$connectedRoomPin', MqttQos.atLeastOnce, builder.payload!);
