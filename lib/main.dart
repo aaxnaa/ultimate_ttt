@@ -137,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
-                child: Text("VERSION 2.4", style: TextStyle(color: theme.contrastColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1)),
+                child: Text("VERSION 2.4.1", style: TextStyle(color: theme.contrastColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1)),
               ),
             ],
           ),
@@ -155,8 +155,8 @@ class _HomeScreenState extends State<HomeScreen> {
           Text("ULTIMATE\nTIC-TAC-TOE", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: theme.titleColor, height: 1)),
           Row(
             children: [
-              IconButton(icon: Icon(Icons.help_outline, color: theme.contrastColor), onPressed: () => showTutorialDialog(context, theme)),
-              IconButton(icon: Icon(Icons.palette_outlined, color: theme.contrastColor), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
+              IconButton(icon: Icon(Icons.help_outline, color: theme.titleColor), onPressed: () => showTutorialDialog(context, theme)),
+              IconButton(icon: Icon(Icons.palette_outlined, color: theme.titleColor), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
             ],
           ),
         ],
@@ -181,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
       const SizedBox(height: 40),
       _sectionLabel(theme, "GET STARTED"),
       const SizedBox(height: 12),
-      TextField(controller: _nameCtrl, style: TextStyle(color: theme.contrastColor, fontWeight: FontWeight.bold), decoration: _inputDeco(theme, "Your Name")),
+      TextField(controller: _nameCtrl, style: TextStyle(color: theme.titleColor, fontWeight: FontWeight.bold), decoration: _inputDeco(theme, "Your Name")),
       const SizedBox(height: 40),
       _bigBtn(theme, "CONTINUE", theme.accentColor, theme.createTextColor, () {
         appState.myName = _nameCtrl.text.isEmpty ? "Player" : _nameCtrl.text;
@@ -200,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
       const SizedBox(height: 15),
       _modeBtn(theme, "PLAY VS AI", Icons.smart_toy_outlined, () => appState.setStage(HomeStage.aiSetup)),
       const SizedBox(height: 30),
-      TextButton(onPressed: () => appState.setStage(HomeStage.welcome), child: Text("BACK", style: TextStyle(color: theme.contrastColor.withOpacity(0.5)))),
+      TextButton(onPressed: () => appState.setStage(HomeStage.welcome), child: Text("BACK", style: TextStyle(color: theme.titleColor.withOpacity(0.5)))),
     ]);
   }
 
@@ -208,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(children: [
       _sectionLabel(theme, "LOCAL PLAY SETUP"),
       const SizedBox(height: 20),
-      TextField(controller: _p2Ctrl, style: TextStyle(color: theme.contrastColor), decoration: _inputDeco(theme, "Opponent Name")),
+      TextField(controller: _p2Ctrl, style: TextStyle(color: theme.titleColor), decoration: _inputDeco(theme, "Opponent Name")),
       const SizedBox(height: 30),
       _bigBtn(theme, "START MATCH", theme.accentColor, theme.createTextColor, () {
         appState.isLocalPlay = true;
@@ -218,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
         appState.myPlayerSymbol = "X";
         Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
       }),
-      TextButton(onPressed: () => appState.setStage(HomeStage.modeSelect), child: Text("BACK", style: TextStyle(color: theme.contrastColor.withOpacity(0.5)))),
+      TextButton(onPressed: () => appState.setStage(HomeStage.modeSelect), child: Text("BACK", style: TextStyle(color: theme.titleColor.withOpacity(0.5)))),
     ]);
   }
 
@@ -226,11 +226,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(children: [
       _sectionLabel(theme, "MULTIPLAYER"),
       const SizedBox(height: 20),
-      _bigBtn(theme, "CREATE A ROOM", theme.playerXColor, Colors.white, () => appState.setStage(HomeStage.onlineCreate)),
+      _bigBtn(theme, "CREATE A ROOM", theme.accentColor, theme.createTextColor, () => appState.setStage(HomeStage.onlineCreate)),
       const SizedBox(height: 15),
-      _bigBtn(theme, "JOIN A ROOM", theme.playerOColor, Colors.white, () => appState.setStage(HomeStage.onlineJoin)),
+      _bigBtn(theme, "JOIN A ROOM", theme.accentColor2, theme.joinTextColor, () => appState.setStage(HomeStage.onlineJoin)),
       const SizedBox(height: 30),
-      TextButton(onPressed: () => appState.setStage(HomeStage.modeSelect), child: Text("BACK", style: TextStyle(color: theme.contrastColor.withOpacity(0.5)))),
+      TextButton(onPressed: () => appState.setStage(HomeStage.modeSelect), child: Text("BACK", style: TextStyle(color: theme.titleColor.withOpacity(0.5)))),
     ]);
   }
 
@@ -240,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
       const SizedBox(height: 20),
       _symbolPicker(theme),
       const SizedBox(height: 25),
-      TextField(controller: _pinCtrl, maxLength: 4, keyboardType: TextInputType.number, style: TextStyle(color: theme.contrastColor), decoration: _inputDeco(theme, "Set 4-Digit PIN")),
+      TextField(controller: _pinCtrl, maxLength: 4, keyboardType: TextInputType.number, style: TextStyle(color: theme.titleColor), decoration: _inputDeco(theme, "Set 4-Digit PIN")),
       const SizedBox(height: 30),
       _bigBtn(theme, "CREATE & WAIT", theme.accentColor, theme.createTextColor, () {
         appState.myPlayerSymbol = _selectedSymbol;
@@ -253,7 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         _startOnlineGame(context, _pinCtrl.text, true);
       }),
-      TextButton(onPressed: () => appState.setStage(HomeStage.onlineChoice), child: Text("BACK", style: TextStyle(color: theme.contrastColor.withOpacity(0.5)))),
+      TextButton(onPressed: () => appState.setStage(HomeStage.onlineChoice), child: Text("BACK", style: TextStyle(color: theme.titleColor.withOpacity(0.5)))),
     ]);
   }
 
@@ -261,12 +261,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(children: [
       _sectionLabel(theme, "JOIN ROOM"),
       const SizedBox(height: 20),
-      TextField(controller: _pinCtrl, maxLength: 4, keyboardType: TextInputType.number, style: TextStyle(color: theme.contrastColor), decoration: _inputDeco(theme, "Enter Room PIN")),
+      TextField(controller: _pinCtrl, maxLength: 4, keyboardType: TextInputType.number, style: TextStyle(color: theme.titleColor), decoration: _inputDeco(theme, "Enter Room PIN")),
       const SizedBox(height: 30),
       _bigBtn(theme, "JOIN MATCH", theme.accentColor2, theme.joinTextColor, () {
         _startOnlineGame(context, _pinCtrl.text, false);
       }),
-      TextButton(onPressed: () => appState.setStage(HomeStage.onlineChoice), child: Text("BACK", style: TextStyle(color: theme.contrastColor.withOpacity(0.5)))),
+      TextButton(onPressed: () => appState.setStage(HomeStage.onlineChoice), child: Text("BACK", style: TextStyle(color: theme.titleColor.withOpacity(0.5)))),
     ]);
   }
 
@@ -293,31 +293,37 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
       }),
-      TextButton(onPressed: () => appState.setStage(HomeStage.modeSelect), child: Text("BACK", style: TextStyle(color: theme.contrastColor.withOpacity(0.5)))),
+      TextButton(onPressed: () => appState.setStage(HomeStage.modeSelect), child: Text("BACK", style: TextStyle(color: theme.titleColor.withOpacity(0.5)))),
     ]);
   }
 
-  Widget _sectionLabel(GameTheme theme, String text) => Text(text, style: TextStyle(color: theme.contrastColor.withOpacity(0.6), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 2));
+  Widget _sectionLabel(GameTheme theme, String text) => Text(text, style: TextStyle(color: theme.titleColor.withOpacity(0.6), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 2));
 
   Widget _modeBtn(GameTheme theme, String text, IconData icon, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(20), border: Border.all(color: theme.contrastColor.withOpacity(0.1))),
+        decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(20), border: Border.all(color: theme.titleColor.withOpacity(0.1))),
         child: Row(children: [
           Icon(icon, color: theme.accentColor, size: 30),
           const SizedBox(width: 20),
-          Text(text, style: TextStyle(color: theme.contrastColor, fontWeight: FontWeight.bold, fontSize: 14)),
+          Text(text, style: TextStyle(color: theme.titleColor, fontWeight: FontWeight.bold, fontSize: 14)),
         ]),
       ),
     );
   }
 
   Widget _bigBtn(GameTheme theme, String text, Color bgColor, Color textColor, VoidCallback onTap) {
+    // Ensure legibility by calculating contrast if the provided text color is too similar to background
+    Color finalTextColor = textColor;
+    if (bgColor.computeLuminance() > 0.7 && textColor.computeLuminance() > 0.7) {
+      finalTextColor = Colors.black87; // Force dark text on very light background
+    }
+
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
-        backgroundColor: bgColor, foregroundColor: textColor, minimumSize: const Size(double.infinity, 60), 
+        backgroundColor: bgColor, foregroundColor: finalTextColor, minimumSize: const Size(double.infinity, 60), 
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)), elevation: 10, shadowColor: bgColor.withOpacity(0.4),
       ),
       onPressed: onTap,
@@ -326,7 +332,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   InputDecoration _inputDeco(GameTheme theme, String hint) => InputDecoration(
-    hintText: hint, hintStyle: TextStyle(color: theme.contrastColor.withOpacity(0.3)), filled: true, fillColor: Colors.black12,
+    hintText: hint, hintStyle: TextStyle(color: theme.titleColor.withOpacity(0.3)), filled: true, fillColor: Colors.black12,
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(20),
   );
 
@@ -372,9 +378,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: Column(
                 children: [
-                  Icon(d['icon'] as IconData, size: 18, color: isSel ? Colors.white : theme.contrastColor.withOpacity(0.4)),
+                  Icon(d['icon'] as IconData, size: 18, color: isSel ? theme.createTextColor : theme.titleColor.withOpacity(0.4)),
                   const SizedBox(height: 4),
-                  Text(d['label'] as String, style: TextStyle(color: isSel ? Colors.white : theme.contrastColor.withOpacity(0.5), fontWeight: FontWeight.bold, fontSize: 10)),
+                  Text(d['label'] as String, style: TextStyle(color: isSel ? theme.createTextColor : theme.titleColor.withOpacity(0.5), fontWeight: FontWeight.bold, fontSize: 10)),
                 ],
               ),
             ),
@@ -483,8 +489,8 @@ class SettingsScreen extends StatelessWidget {
         title: const Text('THEMES', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2, fontSize: 16)),
         backgroundColor: currentTheme.secondaryBackground,
         elevation: 0,
-        iconTheme: IconThemeData(color: currentTheme.contrastColor),
-        titleTextStyle: TextStyle(color: currentTheme.contrastColor),
+        iconTheme: IconThemeData(color: currentTheme.titleColor),
+        titleTextStyle: TextStyle(color: currentTheme.titleColor),
       ),
       body: Container(
         width: double.infinity,
@@ -505,11 +511,11 @@ class SettingsScreen extends StatelessWidget {
                   onTap: () => appState.updateTheme(t),
                   child: Column(children: [
                     Expanded(child: Container(decoration: BoxDecoration(
-                      shape: BoxShape.circle, border: Border.all(color: isSelected ? currentTheme.contrastColor : Colors.white10, width: isSelected ? 4 : 1),
+                      shape: BoxShape.circle, border: Border.all(color: isSelected ? currentTheme.titleColor : Colors.white10, width: isSelected ? 4 : 1),
                       gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [themeInfo.secondaryBackground, themeInfo.background]),
                     ))),
                     const SizedBox(height: 8),
-                    Text(themeInfo.name.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: currentTheme.contrastColor.withOpacity(isSelected ? 1.0 : 0.6)), overflow: TextOverflow.ellipsis),
+                    Text(themeInfo.name.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: currentTheme.titleColor.withOpacity(isSelected ? 1.0 : 0.6)), overflow: TextOverflow.ellipsis),
                   ]),
                 );
               },
@@ -534,17 +540,17 @@ class LobbyScreen extends StatelessWidget {
       body: Container(
         decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [theme.secondaryBackground, theme.background])),
         child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Text("ROOM PIN", style: TextStyle(color: theme.contrastColor.withOpacity(0.6), letterSpacing: 2, fontSize: 12, fontWeight: FontWeight.bold)),
+          Text("ROOM PIN", style: TextStyle(color: theme.titleColor.withOpacity(0.6), letterSpacing: 2, fontSize: 12, fontWeight: FontWeight.bold)),
           Text(pin, style: TextStyle(color: theme.playerXColor, fontSize: 70, fontWeight: FontWeight.bold, letterSpacing: 10)),
           const SizedBox(height: 40),
           CircularProgressIndicator(color: theme.accentColor, strokeWidth: 5),
           const SizedBox(height: 40),
-          Text("WAITING FOR OPPONENT...", style: TextStyle(color: theme.contrastColor, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
+          Text("WAITING FOR OPPONENT...", style: TextStyle(color: theme.titleColor, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
           const SizedBox(height: 60),
           ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.black26), onPressed: () {
             Provider.of<NetworkManager>(context, listen: false).stopAll();
             Navigator.pop(context);
-          }, child: Text("CANCEL", style: TextStyle(color: theme.contrastColor.withOpacity(0.7)))),
+          }, child: Text("CANCEL", style: TextStyle(color: theme.titleColor.withOpacity(0.7)))),
         ])),
       ),
     );
@@ -603,19 +609,19 @@ class _GameScreenState extends State<GameScreen> {
           decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [theme.secondaryBackground, theme.background])),
           child: SafeArea(child: Column(children: [
             Padding(padding: const EdgeInsets.all(16), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              IconButton(onPressed: () { net.stopAll(); engine.reset(); appState.resetHome(); Navigator.pop(context); }, icon: Icon(Icons.close, color: theme.contrastColor)),
+              IconButton(onPressed: () { net.stopAll(); engine.reset(); appState.resetHome(); Navigator.pop(context); }, icon: Icon(Icons.close, color: theme.titleColor)),
               if (appState.showScoreboard)
-                Container(width: 45, height: 45, padding: const EdgeInsets.all(2), decoration: BoxDecoration(color: theme.contrastColor.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                Container(width: 45, height: 45, padding: const EdgeInsets.all(2), decoration: BoxDecoration(color: theme.titleColor.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
                   child: GridView.builder(physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 2, mainAxisSpacing: 2), itemCount: 9,
                     itemBuilder: (context, idx) {
                       String win = engine.miniWins[idx];
                       return Container(color: Colors.black12, child: Center(child: Text(win, style: TextStyle(color: win == "X" ? theme.playerXColor : theme.playerOColor, fontSize: 9, fontWeight: FontWeight.w900))));
                     })),
               Row(children: [
-                IconButton(onPressed: () => showTutorialDialog(context, theme), icon: Icon(Icons.help_outline, color: theme.contrastColor)),
-                IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())), icon: Icon(Icons.palette_outlined, color: theme.contrastColor)),
-                IconButton(onPressed: () => appState.toggleOverlayMode(), icon: Icon(appState.overlayMode == OverlayMode.bigSymbol ? Icons.layers : (appState.overlayMode == OverlayMode.highlight ? Icons.square : Icons.layers_clear), color: theme.contrastColor)),
-                IconButton(onPressed: () { if (appState.isLocalPlay || appState.isBotPlay) engine.reset(); else net.sendData({"type": "RESTART_REQUEST"}); }, icon: Icon(Icons.refresh, color: theme.contrastColor)),
+                IconButton(onPressed: () => showTutorialDialog(context, theme), icon: Icon(Icons.help_outline, color: theme.titleColor)),
+                IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())), icon: Icon(Icons.palette_outlined, color: theme.titleColor)),
+                IconButton(onPressed: () => appState.toggleOverlayMode(), icon: Icon(appState.overlayMode == OverlayMode.bigSymbol ? Icons.layers : (appState.overlayMode == OverlayMode.highlight ? Icons.square : Icons.layers_clear), color: theme.titleColor)),
+                IconButton(onPressed: () { if (appState.isLocalPlay || appState.isBotPlay) engine.reset(); else net.sendData({"type": "RESTART_REQUEST"}); }, icon: Icon(Icons.refresh, color: theme.titleColor)),
               ]),
             ])),
             Expanded(child: Center(child: Padding(padding: const EdgeInsets.all(20), child: AspectRatio(aspectRatio: 1, child: Stack(children: [
@@ -630,7 +636,7 @@ class _GameScreenState extends State<GameScreen> {
               if (engine.winner == null) ...[
                 Text("${turnText.toUpperCase()}'S TURN", style: TextStyle(color: turnColor, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 2)),
                 const SizedBox(height: 8),
-                Text(appState.lastDebugMessage, style: TextStyle(color: theme.contrastColor.withOpacity(0.3), fontSize: 9, fontWeight: FontWeight.bold)),
+                Text(appState.lastDebugMessage, style: TextStyle(color: theme.titleColor.withOpacity(0.3), fontSize: 9, fontWeight: FontWeight.bold)),
               ]
             ])),
           ])),
@@ -639,7 +645,7 @@ class _GameScreenState extends State<GameScreen> {
         // ULTIMATE WIN SCREEN OVERLAY
         if (engine.winner != null)
           Container(color: Colors.black.withOpacity(0.9), child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Text(engine.winner == "DRAW" ? "IT'S A DRAW!" : "ULTIMATE WINNER", style: TextStyle(color: theme.contrastColor, fontSize: 20, letterSpacing: 5, fontWeight: FontWeight.bold)),
+            Text(engine.winner == "DRAW" ? "IT'S A DRAW!" : "ULTIMATE WINNER", style: TextStyle(color: theme.titleColor, fontSize: 20, letterSpacing: 5, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
             if (engine.winner != "DRAW")
               Text(engine.winner == "X" ? appState.pXDisplay.toUpperCase() : appState.pODisplay.toUpperCase(), 
@@ -661,17 +667,21 @@ class _GameScreenState extends State<GameScreen> {
           
         if (engine.restartRequested)
           _buildDialogOverlay(context, title: "Restart Game?", content: "Opponent wants to restart the match.", actions: [
-            TextButton(onPressed: () { engine.setRestartRequested(false); net.sendData({"type": "RESTART_RESPONSE", "accept": false}); }, child: const Text("DECLINE")),
+            TextButton(onPressed: () { engine.setRestartRequested(false); net.sendData({"type": "RESTART_RESPONSE", "accept": false}); }, child: Text("DECLINE", style: TextStyle(color: theme.titleColor))),
             ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: theme.accentColor, foregroundColor: theme.createTextColor), onPressed: () { engine.reset(); net.sendData({"type": "RESTART_RESPONSE", "accept": true}); }, child: const Text("ACCEPT")),
           ]),
       ]),
     );
   }
 
-  Widget _winBtn(GameTheme theme, String text, Color bgColor, Color textColor, VoidCallback onTap) => ElevatedButton(
-    style: ElevatedButton.styleFrom(backgroundColor: bgColor, foregroundColor: textColor, minimumSize: const Size(250, 60), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)), elevation: 10),
-    onPressed: onTap, child: Text(text, style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
-  );
+  Widget _winBtn(GameTheme theme, String text, Color bgColor, Color textColor, VoidCallback onTap) {
+    Color finalTextColor = textColor;
+    if (bgColor.computeLuminance() > 0.7 && textColor.computeLuminance() > 0.7) { finalTextColor = Colors.black87; }
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(backgroundColor: bgColor, foregroundColor: finalTextColor, minimumSize: const Size(250, 60), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)), elevation: 10),
+      onPressed: onTap, child: Text(text, style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
+    );
+  }
 
   Widget _buildDialogOverlay(BuildContext context, {required String title, required String content, required List<Widget> actions}) => Container(
     color: Colors.black87, child: Center(child: Container(width: 300, padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: const Color(0xFF1a1a1a), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.white10)),
