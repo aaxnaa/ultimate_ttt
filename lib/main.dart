@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'game_engine.dart';
 import 'theme_engine.dart';
 import 'network_manager.dart';
+import 'bot_engine.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 void main() {
@@ -20,14 +21,16 @@ void main() {
 
 class AppState extends ChangeNotifier {
   ThemeType currentThemeType = ThemeType.galaxy;
-  String player1Name = "Aaina";
-  String player2Name = "Rahul";
+  String player1Name = "Player 1";
+  String player2Name = "Player 2";
   String? myPlayerSymbol;
   bool showScoreboard = true;
   bool analyzeMode = false;
   bool isLocalPlay = false;
+  bool isBotPlay = false;
+  BotDifficulty? botDifficulty;
   bool showWonOverlays = true;
-  String lastDebugMessage = "V1.0.15 READY";
+  String lastDebugMessage = "V2.0 READY";
 
   void updateTheme(ThemeType type) {
     currentThemeType = type;
@@ -35,8 +38,8 @@ class AppState extends ChangeNotifier {
   }
 
   void updateNames(String p1, String p2) {
-    player1Name = p1;
-    player2Name = p2;
+    player1Name = p1.trim().isNotEmpty ? p1 : "Player 1";
+    player2Name = p2.trim().isNotEmpty ? p2 : "Player 2";
     notifyListeners();
   }
 
@@ -57,7 +60,17 @@ class AppState extends ChangeNotifier {
 
   void startLocalPlay() {
     isLocalPlay = true;
+    isBotPlay = false;
     myPlayerSymbol = "X";
+    notifyListeners();
+  }
+
+  void startBotPlay(BotDifficulty diff) {
+    isLocalPlay = false;
+    isBotPlay = true;
+    myPlayerSymbol = "X"; // User is always X
+    player2Name = "Bot (${diff.name.toUpperCase()})";
+    botDifficulty = diff;
     notifyListeners();
   }
 
@@ -93,8 +106,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final TextEditingController _p1 = TextEditingController(text: "Aaina");
-  final TextEditingController _p2 = TextEditingController(text: "Rahul");
+  final TextEditingController _p1 = TextEditingController();
+  final TextEditingController _p2 = TextEditingController();
   final TextEditingController _pin = TextEditingController();
   int _selectedPersona = 1; 
 
@@ -117,48 +130,79 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(24),
             children: [
               const SizedBox(height: 20),
-              Text("ULTIMATE\nTIC-TAC-TOE", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: theme.playerXColor)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("ULTIMATE\nTIC-TAC-TOE", style: baseStyle.copyWith(fontSize: 32, fontWeight: FontWeight.bold, color: theme.playerXColor)),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.help_outline, color: theme.contrastColor, size: 28),
+                        onPressed: () => _showTutorialDialog(context, theme),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.settings, color: theme.contrastColor, size: 28),
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
               const SizedBox(height: 30),
+
               Text("WHO ARE YOU?", style: TextStyle(color: theme.contrastColor.withOpacity(0.7), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2)),
               const SizedBox(height: 12),
+
               _buildPersonaTile(1, "Player 1 (X)", _p1, theme),
               const SizedBox(height: 10),
               _buildPersonaTile(2, "Player 2 (O)", _p2, theme),
-              const SizedBox(height: 30),
-              Text("SELECT THEME", style: TextStyle(color: theme.contrastColor.withOpacity(0.6), fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 15),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: ThemeType.values.map((t) => GestureDetector(
-                  onTap: () => appState.updateTheme(t),
-                  child: Container(
-                    width: 48, height: 48,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: appState.currentThemeType == t ? theme.contrastColor : Colors.white10, width: 3),
-                      gradient: LinearGradient(colors: [GameTheme.getTheme(t).background, GameTheme.getTheme(t).secondaryBackground]),
+
+              const SizedBox(height: 40),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: theme.accentColor, foregroundColor: Colors.white, minimumSize: const Size(0, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
+                      onPressed: () {
+                        appState.updateNames(_p1.text, _p2.text);
+                        appState.startLocalPlay();
+                        appState.setDebug("V2.0 LOCAL PLAY");
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
+                      },
+                      child: const Text("LOCAL PASS & PLAY", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center),
                     ),
                   ),
-                )).toList(),
-              ),
-              const SizedBox(height: 40),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: theme.accentColor, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-                onPressed: () {
-                  appState.updateNames(_p1.text, _p2.text);
-                  appState.startLocalPlay();
-                  appState.setDebug("V1.0.15 READY");
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
-                },
-                child: const Text("LOCAL PASS & PLAY", style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white12, 
+                        foregroundColor: Colors.white, 
+                        minimumSize: const Size(0, 55), 
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        side: const BorderSide(color: Colors.white54, width: 2),
+                      ),
+                      onPressed: () {
+                        appState.updateNames(_p1.text, _p2.text);
+                        _showDifficultyDialog(context, theme);
+                      },
+                      child: const Text("PLAY VS AI", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 15),
               Row(
                 children: [
                   Expanded(
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: theme.playerXColor, foregroundColor: Colors.white, minimumSize: const Size(0, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.playerXColor, 
+                        foregroundColor: theme.playerXColor.computeLuminance() > 0.5 ? Colors.black : Colors.white, 
+                        minimumSize: const Size(0, 55), 
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        side: BorderSide(color: theme.contrastColor.withOpacity(0.5), width: 2),
+                      ),
                       onPressed: () {
                         appState.updateNames(_p1.text, _p2.text);
                         appState.myPlayerSymbol = (_selectedPersona == 1) ? "X" : "O";
@@ -171,7 +215,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: theme.playerOColor, foregroundColor: Colors.white, minimumSize: const Size(0, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.playerOColor, 
+                        foregroundColor: theme.playerOColor.computeLuminance() > 0.5 ? Colors.black : Colors.white, 
+                        minimumSize: const Size(0, 55), 
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        side: BorderSide(color: theme.contrastColor.withOpacity(0.5), width: 2),
+                      ),
                       onPressed: () {
                         appState.updateNames(_p1.text, _p2.text);
                         appState.myPlayerSymbol = (_selectedPersona == 1) ? "X" : "O";
@@ -184,10 +234,46 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               const SizedBox(height: 40),
-              Center(child: Text("VERSION 1.0.15", style: TextStyle(color: theme.contrastColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1))),
+              Center(child: Text("VERSION 2.0", style: TextStyle(color: theme.contrastColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1))),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showTutorialDialog(BuildContext context, GameTheme theme) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text("How to Play", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("1. Win a small grid to claim that spot on the big board.", style: TextStyle(color: Colors.white70, fontSize: 14)),
+              const SizedBox(height: 20),
+              const Text("2. Your move dictates where your opponent must play. Notice how playing in the top-right sends the opponent to the top-right large grid:", style: TextStyle(color: Colors.white70, fontSize: 14)),
+              const SizedBox(height: 15),
+              Center(child: SizedBox(width: 150, height: 150, child: AnimatedTutorialBoard(theme: theme))),
+              const SizedBox(height: 20),
+              const Text("3. If sent to a full or won grid, you get a FREE MOVE anywhere.", style: TextStyle(color: Colors.white70, fontSize: 14)),
+              const SizedBox(height: 20),
+              const Text("UI Toggles:", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              Row(children: const [Icon(Icons.layers, color: Colors.white54, size: 16), SizedBox(width: 8), Expanded(child: Text("Hide/Show giant won overlays.", style: TextStyle(color: Colors.white70, fontSize: 12)))]),
+              const SizedBox(height: 5),
+              Row(children: const [Icon(Icons.visibility, color: Colors.white54, size: 16), SizedBox(width: 8), Expanded(child: Text("Analyze Mode: 100% opacity for strategic planning.", style: TextStyle(color: Colors.white70, fontSize: 12)))]),
+              const SizedBox(height: 5),
+              Row(children: const [Icon(Icons.grid_view, color: Colors.white54, size: 16), SizedBox(width: 8), Expanded(child: Text("Toggle tiny Strategic Scoreboard.", style: TextStyle(color: Colors.white70, fontSize: 12)))]),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text("GOT IT", style: TextStyle(color: theme.accentColor, fontWeight: FontWeight.bold))),
+        ],
       ),
     );
   }
@@ -217,6 +303,42 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showDifficultyDialog(BuildContext context, GameTheme theme) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text("Select Difficulty", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _diffBtn(ctx, BotDifficulty.easy, "EASY (Random)", Colors.green),
+            const SizedBox(height: 10),
+            _diffBtn(ctx, BotDifficulty.medium, "MEDIUM (Blocks Wins)", Colors.orange),
+            const SizedBox(height: 10),
+            _diffBtn(ctx, BotDifficulty.hard, "HARD (Minimax)", Colors.red),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(color: Colors.white54))),
+        ],
+      ),
+    );
+  }
+
+  Widget _diffBtn(BuildContext ctx, BotDifficulty diff, String label, Color color) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(backgroundColor: color, minimumSize: const Size(double.infinity, 45)),
+      onPressed: () {
+        final appState = Provider.of<AppState>(ctx, listen: false);
+        appState.startBotPlay(diff);
+        Navigator.pop(ctx);
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
+      },
+      child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -254,6 +376,10 @@ class _HomeScreenState extends State<HomeScreen> {
                      "theme": appState.currentThemeType.index,
                      "p1": appState.player1Name,
                      "p2": appState.player2Name,
+                     "board": engine.board,
+                     "miniWins": engine.miniWins,
+                     "activeMiniGrid": engine.activeMiniGrid,
+                     "currentPlayer": engine.currentPlayer,
                    });
                    if (Navigator.canPop(context)) {
                      Navigator.pop(context);
@@ -267,6 +393,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 } else if (data["type"] == "SYNC_SETUP") {
                   appState.updateTheme(ThemeType.values[data["theme"]]);
                   appState.updateNames(data["p1"], data["p2"]);
+                  
+                  // Restore persistence state
+                  if (data["board"] != null) {
+                    List<dynamic> bRaw = data["board"];
+                    engine.board = bRaw.map((r) => (r as List<dynamic>).map((c) => c.toString()).toList()).toList();
+                    List<dynamic> mwRaw = data["miniWins"];
+                    engine.miniWins = mwRaw.map((e) => e.toString()).toList();
+                    engine.activeMiniGrid = data["activeMiniGrid"];
+                    engine.currentPlayer = data["currentPlayer"] ?? "X";
+                    // Manually trigger a UI update for the engine
+                    engine.notifyListeners();
+                  }
+
                   if (Navigator.canPop(context)) {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen()));
@@ -285,6 +424,110 @@ class _HomeScreenState extends State<HomeScreen> {
             child: const Text("GO"),
           )
         ],
+      ),
+    );
+  }
+}
+
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final currentTheme = GameTheme.getTheme(appState.currentThemeType);
+
+    // Rainbow order
+    final rainbowOrder = [
+      ThemeType.barbie,    // Pink
+      ThemeType.picnic,    // Red/Orange
+      ThemeType.summer,    // Yellow/Orange
+      ThemeType.plant,     // Green
+      ThemeType.ocean,     // Light Blue
+      ThemeType.winter,    // Ice Blue
+      ThemeType.nighttime, // Navy
+      ThemeType.galaxy,    // Deep Purple
+      ThemeType.sunset,    // Purple/Orange
+      ThemeType.natural,   // Brown
+      ThemeType.minimalist,// White/Black
+      ThemeType.classic,   // White/Black
+      ThemeType.midnight   // Black
+    ];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('SETTINGS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2, fontSize: 16)),
+        backgroundColor: currentTheme.background,
+        elevation: 0,
+        iconTheme: IconThemeData(color: currentTheme.contrastColor),
+        titleTextStyle: TextStyle(color: currentTheme.contrastColor),
+      ),
+      body: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [currentTheme.background, currentTheme.secondaryBackground],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("THEME", style: TextStyle(color: currentTheme.contrastColor.withOpacity(0.7), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: GridView.builder(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 4,
+                      crossAxisSpacing: 15,
+                      mainAxisSpacing: 20,
+                    ),
+                    itemCount: rainbowOrder.length,
+                    itemBuilder: (context, index) {
+                      final t = rainbowOrder[index];
+                      final themeInfo = GameTheme.getTheme(t);
+                      final isSelected = appState.currentThemeType == t;
+
+                      return GestureDetector(
+                        onTap: () => appState.updateTheme(t),
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: isSelected ? currentTheme.contrastColor : Colors.white10, width: isSelected ? 3 : 1),
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [themeInfo.background, themeInfo.secondaryBackground],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(themeInfo.name.toUpperCase(), 
+                              style: TextStyle(
+                                fontSize: 9, 
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                color: currentTheme.contrastColor.withOpacity(isSelected ? 1.0 : 0.6),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -332,8 +575,45 @@ class LobbyScreen extends StatelessWidget {
   }
 }
 
-class GameScreen extends StatelessWidget {
+class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
+
+  @override
+  State<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<GameScreen> {
+  BotEngine? _bot;
+
+  @override
+  void initState() {
+    super.initState();
+    // Delay slightly so Provider is available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appState = Provider.of<AppState>(context, listen: false);
+      if (appState.isBotPlay && appState.botDifficulty != null) {
+        final engine = Provider.of<UltimateTTTEngine>(context, listen: false);
+        _bot = BotEngine(engine: engine, difficulty: appState.botDifficulty!, botSymbol: "O");
+        
+        // Listen to engine changes to trigger bot
+        engine.addListener(_onEngineChanged);
+      }
+    });
+  }
+
+  void _onEngineChanged() {
+    final engine = Provider.of<UltimateTTTEngine>(context, listen: false);
+    if (engine.currentPlayer == "O" && _bot != null) {
+      _bot!.makeMove();
+    }
+  }
+
+  @override
+  void dispose() {
+    final engine = Provider.of<UltimateTTTEngine>(context, listen: false);
+    engine.removeListener(_onEngineChanged);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -581,11 +861,73 @@ class WinningLinePainter extends CustomPainter {
 class MiniBoardWidget extends StatelessWidget {
   final int subGridIdx;
   final bool isActive;
-  final bool isBolded;
-  const MiniBoardWidget({super.key, required this.subGridIdx, required this.isActive, required this.isBolded});
+class AnimatedTutorialBoard extends StatefulWidget {
+  final GameTheme theme;
+  const AnimatedTutorialBoard({super.key, required this.theme});
+
+  @override
+  State<AnimatedTutorialBoard> createState() => _AnimatedTutorialBoardState();
+}
+
+class _AnimatedTutorialBoardState extends State<AnimatedTutorialBoard> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        int phase = (_controller.value * 3).floor(); // 0, 1, 2
+        
+        return GridView.builder(
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 4, mainAxisSpacing: 4),
+          itemCount: 9,
+          itemBuilder: (context, macroIdx) {
+            bool isTarget = phase >= 1 && macroIdx == 2; // Target is top-right (index 2)
+
+            return Container(
+              decoration: BoxDecoration(
+                color: isTarget ? widget.theme.accentColor.withOpacity(0.4) : Colors.white10,
+                border: Border.all(color: isTarget ? widget.theme.accentColor : Colors.white24, width: isTarget ? 2 : 1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: GridView.builder(
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
+                itemCount: 9,
+                itemBuilder: (context, miniIdx) {
+                  // Play move in middle-center macro grid (index 4), top-right mini square (index 2)
+                  bool isMove = phase >= 1 && macroIdx == 4 && miniIdx == 2;
+                  
+                  return Container(
+                    decoration: BoxDecoration(border: Border.all(color: Colors.white.withOpacity(0.05), width: 0.5)),
+                    child: Center(
+                      child: isMove ? Text("X", style: TextStyle(color: widget.theme.playerXColor, fontWeight: FontWeight.bold, fontSize: 10)) : null,
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
     final engine = context.watch<UltimateTTTEngine>();
     final appState = context.watch<AppState>();
     final theme = GameTheme.getTheme(appState.currentThemeType);
