@@ -36,7 +36,7 @@ class AppState extends ChangeNotifier {
   bool isLocalPlay = false;
   bool isBotPlay = false;
   BotDifficulty? botDifficulty;
-  String lastDebugMessage = "V2.4 READY";
+  String lastDebugMessage = "V2.5 CONNECTED";
 
   String get pXDisplay => playerXName.trim().isEmpty ? "Player X" : playerXName;
   String get pODisplay => playerOName.trim().isEmpty ? "Player O" : playerOName;
@@ -137,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
-                child: Text("VERSION 2.4.1", style: TextStyle(color: theme.contrastColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1)),
+                child: Text("VERSION 2.5", style: TextStyle(color: theme.titleColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1)),
               ),
             ],
           ),
@@ -194,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(children: [
       _sectionLabel(theme, "SELECT GAME MODE"),
       const SizedBox(height: 20),
-      _modeBtn(theme, "LOCAL PASS & PLAY", Icons.phonelink_setup, () => appState.setStage(HomeStage.localSetup)),
+      _modeBtn(theme, "LOCAL PASS OR PLAY\n(SAME DEVICE)", Icons.phonelink_setup, () => appState.setStage(HomeStage.localSetup)),
       const SizedBox(height: 15),
       _modeBtn(theme, "PLAY VS HUMAN (ONLINE)", Icons.public, () => appState.setStage(HomeStage.onlineChoice)),
       const SizedBox(height: 15),
@@ -209,6 +209,8 @@ class _HomeScreenState extends State<HomeScreen> {
       _sectionLabel(theme, "LOCAL PLAY SETUP"),
       const SizedBox(height: 20),
       TextField(controller: _p2Ctrl, style: TextStyle(color: theme.titleColor), decoration: _inputDeco(theme, "Opponent Name")),
+      const SizedBox(height: 25),
+      _settingsPreview(theme),
       const SizedBox(height: 30),
       _bigBtn(theme, "START MATCH", theme.accentColor, theme.createTextColor, () {
         appState.isLocalPlay = true;
@@ -241,6 +243,8 @@ class _HomeScreenState extends State<HomeScreen> {
       _symbolPicker(theme),
       const SizedBox(height: 25),
       TextField(controller: _pinCtrl, maxLength: 4, keyboardType: TextInputType.number, style: TextStyle(color: theme.titleColor), decoration: _inputDeco(theme, "Set 4-Digit PIN")),
+      const SizedBox(height: 25),
+      _settingsPreview(theme),
       const SizedBox(height: 30),
       _bigBtn(theme, "CREATE & WAIT", theme.accentColor, theme.createTextColor, () {
         appState.myPlayerSymbol = _selectedSymbol;
@@ -277,6 +281,8 @@ class _HomeScreenState extends State<HomeScreen> {
       _aiDiffPickerV2(theme),
       const SizedBox(height: 25),
       _symbolPicker(theme),
+      const SizedBox(height: 25),
+      _settingsPreview(theme),
       const SizedBox(height: 30),
       _bigBtn(theme, "START AI MATCH", theme.accentColor, theme.createTextColor, () {
         appState.isLocalPlay = false;
@@ -297,7 +303,48 @@ class _HomeScreenState extends State<HomeScreen> {
     ]);
   }
 
-  Widget _sectionLabel(GameTheme theme, String text) => Text(text, style: TextStyle(color: theme.titleColor.withOpacity(0.6), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 2));
+  Widget _settingsPreview(GameTheme theme) {
+    final appState = context.watch<AppState>();
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(15), border: Border.all(color: theme.titleColor.withOpacity(0.1))),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("GAME THEME", style: TextStyle(color: theme.titleColor, fontSize: 12, fontWeight: FontWeight.bold)),
+              GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(color: theme.titleColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                  child: Text(theme.name.toUpperCase(), style: TextStyle(color: theme.titleColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("OVERLAY MODE", style: TextStyle(color: theme.titleColor, fontSize: 12, fontWeight: FontWeight.bold)),
+              GestureDetector(
+                onTap: () => appState.toggleOverlayMode(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(color: theme.titleColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                  child: Text(appState.overlayMode.name.toUpperCase(), style: TextStyle(color: theme.titleColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionLabel(GameTheme theme, String text) => Text(text, style: TextStyle(color: theme.titleColor.withOpacity(0.6), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 2), textAlign: TextAlign.center);
 
   Widget _modeBtn(GameTheme theme, String text, IconData icon, VoidCallback onTap) {
     return GestureDetector(
@@ -308,19 +355,15 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Row(children: [
           Icon(icon, color: theme.accentColor, size: 30),
           const SizedBox(width: 20),
-          Text(text, style: TextStyle(color: theme.titleColor, fontWeight: FontWeight.bold, fontSize: 14)),
+          Expanded(child: Text(text, style: TextStyle(color: theme.titleColor, fontWeight: FontWeight.bold, fontSize: 14))),
         ]),
       ),
     );
   }
 
   Widget _bigBtn(GameTheme theme, String text, Color bgColor, Color textColor, VoidCallback onTap) {
-    // Ensure legibility by calculating contrast if the provided text color is too similar to background
     Color finalTextColor = textColor;
-    if (bgColor.computeLuminance() > 0.7 && textColor.computeLuminance() > 0.7) {
-      finalTextColor = Colors.black87; // Force dark text on very light background
-    }
-
+    if (bgColor.computeLuminance() > 0.7 && textColor.computeLuminance() > 0.7) { finalTextColor = Colors.black87; }
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         backgroundColor: bgColor, foregroundColor: finalTextColor, minimumSize: const Size(double.infinity, 60), 
@@ -426,7 +469,8 @@ class _HomeScreenState extends State<HomeScreen> {
         engine.notifyListeners();
         if (Navigator.canPop(context)) { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen())); }
       } else if (data["type"] == "MOVE") {
-        engine.makeMove(data["subGrid"], data["square"]);
+        // V2.5 Fix: Use forceRemoteMove to ensure state aligns perfectly
+        engine.forceRemoteMove(data["subGrid"], data["square"], data["player"]);
       } else if (data["type"] == "RESTART_REQUEST") {
         engine.setRestartRequested(true);
       } else if (data["type"] == "RESTART_RESPONSE") {
@@ -727,7 +771,7 @@ class MiniBoardWidget extends StatelessWidget {
               if (appState.isLocalPlay || appState.isBotPlay || engine.currentPlayer == appState.myPlayerSymbol) {
                 if (engine.canMove(subGridIdx, sqIdx)) {
                   engine.makeMove(subGridIdx, sqIdx);
-                  if (!appState.isLocalPlay && !appState.isBotPlay) Provider.of<NetworkManager>(context, listen: false).sendData({"type": "MOVE", "subGrid": subGridIdx, "square": sqIdx});
+                  if (!appState.isLocalPlay && !appState.isBotPlay) Provider.of<NetworkManager>(context, listen: false).sendData({"type": "MOVE", "subGrid": subGridIdx, "square": sqIdx, "player": appState.myPlayerSymbol == "X" ? "X" : "O"});
                 } else appState.setDebug("GO TO GRID ${engine.activeMiniGrid != null ? engine.activeMiniGrid! + 1 : 'ANY'}");
               } else appState.setDebug("WAIT FOR OPPONENT");
             }, child: Container(margin: const EdgeInsets.all(1), decoration: BoxDecoration(border: Border.all(color: theme.gridColor.withOpacity(0.2), width: 0.5)),

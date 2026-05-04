@@ -14,10 +14,7 @@ class NetworkManager extends ChangeNotifier {
   String myPlayerName = "";
   late String _clientId;
 
-  // Callback for when data is received
   Function(Map<String, dynamic>)? onDataReceived;
-  // Callback for when a player joins
-  Function()? onPlayerConnected;
 
   NetworkManager() {
     _clientId = 'ttt_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(999)}';
@@ -29,13 +26,14 @@ class NetworkManager extends ChangeNotifier {
     status = isHost ? NetworkStatus.hosting : NetworkStatus.discovering;
     notifyListeners();
 
-    // PUBLIC MQTT BROKER
+    // Use a unique room topic version to avoid collisions with old session data
     client = MqttBrowserClient('wss://broker.emqx.io/mqtt', _clientId);
     client!.port = 8084;
     client!.keepAlivePeriod = 20;
     client!.onConnected = () => _onConnected(isHost);
     client!.onDisconnected = _onDisconnected;
     client!.autoReconnect = true;
+    client!.resubscribeOnAutoReconnect = true;
 
     try {
       await client!.connect();
@@ -47,8 +45,7 @@ class NetworkManager extends ChangeNotifier {
 
   void _onConnected(bool isHost) {
     status = NetworkStatus.connected;
-    
-    final topic = 'ultimate_ttt_room_$connectedRoomPin';
+    final topic = 'ultimate_ttt_v25_room_$connectedRoomPin';
     client!.subscribe(topic, MqttQos.atLeastOnce);
 
     client!.updates!.listen((List<MqttReceivedMessage<MqttMessage>> c) {
@@ -57,7 +54,6 @@ class NetworkManager extends ChangeNotifier {
       
       try {
         Map<String, dynamic> data = jsonDecode(payload);
-        // Ignore our own messages
         if (data['cid'] != _clientId) {
           onDataReceived?.call(data);
         }
@@ -66,9 +62,9 @@ class NetworkManager extends ChangeNotifier {
       }
     });
 
-    // HANDSHAKE: Joiner announces arrival after a short delay
+    // HANDSHAKE V2.5: Host doesn't need to do anything, Joiner requests state
     if (!isHost) {
-      Timer(const Duration(milliseconds: 1200), () {
+      Timer(const Duration(milliseconds: 1500), () {
         sendData({'type': 'JOIN_REQ', 'name': myPlayerName});
       });
     }
@@ -85,9 +81,10 @@ class NetworkManager extends ChangeNotifier {
     if (client != null && client!.connectionStatus!.state == MqttConnectionState.connected) {
       data['sender'] = myPlayerName;
       data['cid'] = _clientId;
+      data['ts'] = DateTime.now().millisecondsSinceEpoch; // Timestamp for ordering
       final builder = MqttClientPayloadBuilder();
       builder.addString(jsonEncode(data));
-      client!.publishMessage('ultimate_ttt_room_$connectedRoomPin', MqttQos.atLeastOnce, builder.payload!);
+      client!.publishMessage('ultimate_ttt_v25_room_$connectedRoomPin', MqttQos.atLeastOnce, builder.payload!);
     }
   }
 

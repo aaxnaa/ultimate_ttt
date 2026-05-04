@@ -6,7 +6,7 @@ class UltimateTTTEngine extends ChangeNotifier {
   int? activeMiniGrid;
   String currentPlayer = "X";
   String? winner;
-  List<int>? winningLine; // Stores the indices of the winning grids
+  List<int>? winningLine;
 
   bool pendingDrawVote = false;
   int? tiedGridIndex;
@@ -26,8 +26,21 @@ class UltimateTTTEngine extends ChangeNotifier {
     return true;
   }
 
+  // Standard move for local clicks
   void makeMove(int subGridIndex, int squareIndex) {
-    if (!canMove(subGridIndex, squareIndex)) return;
+    _applyMoveInternal(subGridIndex, squareIndex);
+  }
+
+  // Forces a move from a remote player to ensure synchronization even if states slightly differ
+  void forceRemoteMove(int subGridIndex, int squareIndex, String player) {
+    // Sync current player just in case of lag
+    currentPlayer = player; 
+    _applyMoveInternal(subGridIndex, squareIndex);
+  }
+
+  void _applyMoveInternal(int subGridIndex, int squareIndex) {
+    if (winner != null) return;
+    if (board[subGridIndex][squareIndex] != "") return;
 
     board[subGridIndex][squareIndex] = currentPlayer;
 
@@ -47,10 +60,11 @@ class UltimateTTTEngine extends ChangeNotifier {
 
     if (winner == null) {
       int nextGrid = squareIndex;
+      // V2.4 Rule: Free move only if target is 100% full
       if (_isGridFull(board[nextGrid])) {
-         activeMiniGrid = null; // Free move only if target is 100% full
+         activeMiniGrid = null;
       } else {
-        activeMiniGrid = nextGrid; // Must play here even if it is won (but not full)
+        activeMiniGrid = nextGrid;
       }
       currentPlayer = (currentPlayer == "X") ? "O" : "X";
     }
@@ -67,8 +81,6 @@ class UltimateTTTEngine extends ChangeNotifier {
         return;
       }
     }
-    
-    // Check for a global tie (all grids are won or tied)
     if (!miniWins.contains("")) {
       winner = "DRAW";
     }
@@ -79,19 +91,15 @@ class UltimateTTTEngine extends ChangeNotifier {
       myDrawVote = vote;
       opponentDrawVote = vote;
     } else {
-      if (isMe) {
-        myDrawVote = vote;
-      } else {
-        opponentDrawVote = vote;
-      }
+      if (isMe) myDrawVote = vote; else opponentDrawVote = vote;
     }
 
     if (myDrawVote != null && opponentDrawVote != null) {
       if (myDrawVote! && opponentDrawVote!) {
         miniWins[tiedGridIndex!] = "T";
-        _checkUltimateWin(); // A tie might fill the last spot, causing a global draw
+        _checkUltimateWin();
       } else {
-        miniWins[tiedGridIndex!] = ""; // Revert if they want to keep playing
+        miniWins[tiedGridIndex!] = "";
       }
       pendingDrawVote = false;
       tiedGridIndex = null;
