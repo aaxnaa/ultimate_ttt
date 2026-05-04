@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:math';
 import 'game_engine.dart';
 import 'theme_engine.dart';
 import 'network_manager.dart';
@@ -36,7 +37,7 @@ class AppState extends ChangeNotifier {
   bool isLocalPlay = false;
   bool isBotPlay = false;
   BotDifficulty? botDifficulty;
-  String lastDebugMessage = "V2.5 CONNECTED";
+  String lastDebugMessage = "V2.5.1 SECURE";
 
   String get pXDisplay => playerXName.trim().isEmpty ? "Player X" : playerXName;
   String get pODisplay => playerOName.trim().isEmpty ? "Player O" : playerOName;
@@ -111,6 +112,10 @@ class _HomeScreenState extends State<HomeScreen> {
   String _selectedSymbol = "X";
   BotDifficulty _selectedDiff = BotDifficulty.medium;
 
+  void _generateNewPin() {
+    _pinCtrl.text = (10000 + Random().nextInt(89999)).toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
@@ -137,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
-                child: Text("VERSION 2.5", style: TextStyle(color: theme.titleColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1)),
+                child: Text("VERSION 2.5.1", style: TextStyle(color: theme.titleColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1)),
               ),
             ],
           ),
@@ -228,9 +233,15 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(children: [
       _sectionLabel(theme, "MULTIPLAYER"),
       const SizedBox(height: 20),
-      _bigBtn(theme, "CREATE A ROOM", theme.accentColor, theme.createTextColor, () => appState.setStage(HomeStage.onlineCreate)),
+      _bigBtn(theme, "CREATE A ROOM", theme.accentColor, theme.createTextColor, () {
+        _generateNewPin();
+        appState.setStage(HomeStage.onlineCreate);
+      }),
       const SizedBox(height: 15),
-      _bigBtn(theme, "JOIN A ROOM", theme.accentColor2, theme.joinTextColor, () => appState.setStage(HomeStage.onlineJoin)),
+      _bigBtn(theme, "JOIN A ROOM", theme.accentColor2, theme.joinTextColor, () {
+        _pinCtrl.clear();
+        appState.setStage(HomeStage.onlineJoin);
+      }),
       const SizedBox(height: 30),
       TextButton(onPressed: () => appState.setStage(HomeStage.modeSelect), child: Text("BACK", style: TextStyle(color: theme.titleColor.withOpacity(0.5)))),
     ]);
@@ -238,11 +249,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildOnlineCreate(AppState appState, GameTheme theme) {
     return Column(children: [
-      _sectionLabel(theme, "CREATE ROOM"),
+      _sectionLabel(theme, "YOUR UNIQUE ROOM CODE"),
       const SizedBox(height: 20),
-      _symbolPicker(theme),
+      Container(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
+        decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(20), border: Border.all(color: theme.accentColor, width: 2)),
+        child: Text(_pinCtrl.text, style: TextStyle(color: theme.titleColor, fontSize: 40, fontWeight: FontWeight.w900, letterSpacing: 8)),
+      ),
       const SizedBox(height: 25),
-      TextField(controller: _pinCtrl, maxLength: 4, keyboardType: TextInputType.number, style: TextStyle(color: theme.titleColor), decoration: _inputDeco(theme, "Set 4-Digit PIN")),
+      _symbolPicker(theme),
       const SizedBox(height: 25),
       _settingsPreview(theme),
       const SizedBox(height: 30),
@@ -263,12 +278,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildOnlineJoin(AppState appState, GameTheme theme) {
     return Column(children: [
-      _sectionLabel(theme, "JOIN ROOM"),
+      _sectionLabel(theme, "ENTER ROOM CODE"),
       const SizedBox(height: 20),
-      TextField(controller: _pinCtrl, maxLength: 4, keyboardType: TextInputType.number, style: TextStyle(color: theme.titleColor), decoration: _inputDeco(theme, "Enter Room PIN")),
+      TextField(
+        controller: _pinCtrl, maxLength: 5, keyboardType: TextInputType.number, 
+        textAlign: TextAlign.center,
+        style: TextStyle(color: theme.titleColor, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 5), 
+        decoration: _inputDeco(theme, "e.g. 12345")
+      ),
       const SizedBox(height: 30),
       _bigBtn(theme, "JOIN MATCH", theme.accentColor2, theme.joinTextColor, () {
-        _startOnlineGame(context, _pinCtrl.text, false);
+        if (_pinCtrl.text.length == 5) {
+          _startOnlineGame(context, _pinCtrl.text, false);
+        } else {
+          appState.setDebug("PIN MUST BE 5 DIGITS");
+        }
       }),
       TextButton(onPressed: () => appState.setStage(HomeStage.onlineChoice), child: Text("BACK", style: TextStyle(color: theme.titleColor.withOpacity(0.5)))),
     ]);
@@ -376,7 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   InputDecoration _inputDeco(GameTheme theme, String hint) => InputDecoration(
     hintText: hint, hintStyle: TextStyle(color: theme.titleColor.withOpacity(0.3)), filled: true, fillColor: Colors.black12,
-    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(20),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(20), counterText: "",
   );
 
   Widget _symbolPicker(GameTheme theme) {
@@ -469,7 +493,6 @@ class _HomeScreenState extends State<HomeScreen> {
         engine.notifyListeners();
         if (Navigator.canPop(context)) { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const GameScreen())); }
       } else if (data["type"] == "MOVE") {
-        // V2.5 Fix: Use forceRemoteMove to ensure state aligns perfectly
         engine.forceRemoteMove(data["subGrid"], data["square"], data["player"]);
       } else if (data["type"] == "RESTART_REQUEST") {
         engine.setRestartRequested(true);
@@ -689,7 +712,7 @@ class _GameScreenState extends State<GameScreen> {
         // ULTIMATE WIN SCREEN OVERLAY
         if (engine.winner != null)
           Container(color: Colors.black.withOpacity(0.9), child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Text(engine.winner == "DRAW" ? "IT'S A DRAW!" : "ULTIMATE WINNER", style: TextStyle(color: theme.titleColor, fontSize: 20, letterSpacing: 5, fontWeight: FontWeight.bold)),
+            Text(engine.winner == "DRAW" ? "IT'S A DRAW!" : "ULTIMATE WINNER", style: TextStyle(color: theme.contrastColor, fontSize: 20, letterSpacing: 5, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
             if (engine.winner != "DRAW")
               Text(engine.winner == "X" ? appState.pXDisplay.toUpperCase() : appState.pODisplay.toUpperCase(), 
