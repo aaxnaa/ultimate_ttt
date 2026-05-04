@@ -25,7 +25,7 @@ enum OverlayMode { bigSymbol, highlight, none }
 class AppState extends ChangeNotifier {
   ThemeType currentThemeType = ThemeType.midnight;
   HomeStage currentStage = HomeStage.welcome;
-  OverlayMode overlayMode = OverlayMode.highlight; // NEW BASELINE: Highlight (Color Shade)
+  OverlayMode overlayMode = OverlayMode.highlight;
   
   String myName = "";
   String playerXName = "";
@@ -33,11 +33,11 @@ class AppState extends ChangeNotifier {
   String? myPlayerSymbol;
   
   bool showScoreboard = true;
-  bool analyzeMode = false; // BASELINE: Off
+  bool analyzeMode = false;
   bool isLocalPlay = false;
   bool isBotPlay = false;
   BotDifficulty? botDifficulty;
-  String lastDebugMessage = "V2.7.1 READY";
+  String lastDebugMessage = "V2.8.1 READY";
 
   String get pXDisplay => playerXName.trim().isEmpty ? "Player X" : playerXName;
   String get pODisplay => playerOName.trim().isEmpty ? "Player O" : playerOName;
@@ -76,6 +76,8 @@ class AppState extends ChangeNotifier {
 
   void resetHome() {
     currentStage = HomeStage.welcome;
+    isLocalPlay = false;
+    isBotPlay = false;
     notifyListeners();
   }
 }
@@ -142,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
-                child: Text("VERSION 2.7.2", style: TextStyle(color: theme.versionColor, fontSize: 10, letterSpacing: 1, fontWeight: FontWeight.bold)),
+                child: Text("VERSION 2.8.1", style: TextStyle(color: theme.versionColor, fontSize: 10, letterSpacing: 1, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -474,6 +476,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final net = Provider.of<NetworkManager>(context, listen: false);
     final engine = Provider.of<UltimateTTTEngine>(context, listen: false);
 
+    // CRITICAL FIX: Reset Bot and Local flags
+    appState.isBotPlay = false;
+    appState.isLocalPlay = false;
+
     net.onDataReceived = (data) {
       if (isHost && data["type"] == "JOIN_REQ") {
         if (appState.myPlayerSymbol == "X") { appState.playerOName = data["name"]; } 
@@ -707,7 +713,6 @@ class _GameScreenState extends State<GameScreen> {
             Expanded(child: Center(child: Padding(padding: const EdgeInsets.all(20), child: AspectRatio(aspectRatio: 1, child: Stack(children: [
               GridView.builder(physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 14, mainAxisSpacing: 14), itemCount: 9,
                 itemBuilder: (context, idx) {
-                  // V2.7.1 logic: Highlight NONE in Analyze mode. Subtle emphasis otherwise.
                   bool isActuallyActive = (engine.activeMiniGrid == null || engine.activeMiniGrid == idx);
                   bool showHighlight = !appState.analyzeMode && isActuallyActive;
                   return MiniBoardWidget(subGridIdx: idx, showHighlight: showHighlight);
@@ -790,15 +795,16 @@ class MiniBoardWidget extends StatelessWidget {
     final theme = GameTheme.getTheme(appState.currentThemeType);
     final win = engine.miniWins[subGridIdx];
 
-    Color? overlayColor;
+    Color bgColor = theme.background.withOpacity(0.85);
     if (win != "" && appState.overlayMode == OverlayMode.highlight) {
-      overlayColor = (win == "X" ? theme.playerXColor : theme.playerOColor).withOpacity(0.15);
+      Color highlight = (win == "X" ? theme.playerXColor : theme.playerOColor).withOpacity(0.25);
+      bgColor = Color.alphaBlend(highlight, bgColor);
     }
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       decoration: BoxDecoration(
-        color: overlayColor ?? theme.background.withOpacity(0.85),
+        color: bgColor,
         borderRadius: BorderRadius.circular(12),
         border: showHighlight 
           ? Border.all(color: theme.gridHighlightColor, width: 6) 
