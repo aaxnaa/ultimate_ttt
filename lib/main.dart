@@ -23,7 +23,7 @@ enum HomeStage { welcome, modeSelect, localSetup, onlineChoice, onlineCreate, on
 enum OverlayMode { bigSymbol, highlight, none }
 
 class AppState extends ChangeNotifier {
-  ThemeType currentThemeType = ThemeType.nighttime;
+  ThemeType currentThemeType = ThemeType.midnight; // NEW DEFAULT
   HomeStage currentStage = HomeStage.welcome;
   OverlayMode overlayMode = OverlayMode.bigSymbol;
   
@@ -37,7 +37,7 @@ class AppState extends ChangeNotifier {
   bool isLocalPlay = false;
   bool isBotPlay = false;
   BotDifficulty? botDifficulty;
-  String lastDebugMessage = "V2.6 READY";
+  String lastDebugMessage = "V2.7 READY";
 
   String get pXDisplay => playerXName.trim().isEmpty ? "Player X" : playerXName;
   String get pODisplay => playerOName.trim().isEmpty ? "Player O" : playerOName;
@@ -127,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [theme.secondaryBackground, theme.background],
+            colors: [theme.secondaryBackground, theme.background], // Dark to Light
           ),
         ),
         child: SafeArea(
@@ -142,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
-                child: Text("VERSION 2.6", style: TextStyle(color: theme.titleColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1)),
+                child: Text("VERSION 2.7", style: TextStyle(color: theme.versionColor, fontSize: 10, letterSpacing: 1, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -340,25 +340,34 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(15), border: Border.all(color: theme.titleColor.withOpacity(0.1))),
       child: Column(
         children: [
-          _settingRow(theme, "THEME", theme.name.toUpperCase(), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
+          _settingRow(context, theme, "THEME", theme.name.toUpperCase(), "Customize your game colors.", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
           const SizedBox(height: 12),
-          _settingRow(theme, "OVERLAY", overlayDesc, () => appState.toggleOverlayMode()),
+          _settingRow(context, theme, "OVERLAY", overlayDesc, "Choose how won grids are marked.", () => appState.toggleOverlayMode()),
           const SizedBox(height: 12),
-          _settingRow(theme, "SCOREBOARD", appState.showScoreboard ? "ON" : "OFF", () => appState.toggleScoreboard()),
+          _settingRow(context, theme, "SCOREBOARD", appState.showScoreboard ? "ON" : "OFF", "Toggle the tiny map of all wins.", () => appState.toggleScoreboard()),
           const SizedBox(height: 12),
-          _settingRow(theme, "ANALYZE (EYE)", appState.analyzeMode ? "ON" : "OFF", () => appState.toggleAnalyzeMode()),
+          _settingRow(context, theme, "ANALYZE (EYE)", appState.analyzeMode ? "ON" : "OFF", "Turns off highlights for strategy.", () => appState.toggleAnalyzeMode()),
           const SizedBox(height: 12),
-          _settingRow(theme, "LEARN RULES", "VIEW", () => showTutorialDialog(context, theme)),
+          _settingRow(context, theme, "LEARN RULES", "VIEW", "See the official rules of the game.", () => showTutorialDialog(context, theme)),
         ],
       ),
     );
   }
 
-  Widget _settingRow(GameTheme theme, String label, String value, VoidCallback onTap) {
+  Widget _settingRow(BuildContext context, GameTheme theme, String label, String value, String explanation, VoidCallback onTap) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(color: theme.titleColor, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+        GestureDetector(
+          onTap: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(explanation), duration: const Duration(seconds: 2))),
+          child: Row(
+            children: [
+              Text(label, style: TextStyle(color: theme.titleColor, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+              const SizedBox(width: 4),
+              Icon(Icons.info_outline, color: theme.titleColor.withOpacity(0.4), size: 12),
+            ],
+          ),
+        ),
         GestureDetector(
           onTap: onTap,
           child: Container(
@@ -671,7 +680,7 @@ class _GameScreenState extends State<GameScreen> {
     final net = context.watch<NetworkManager>();
 
     String turnText = engine.currentPlayer == "X" ? appState.pXDisplay : appState.pODisplay;
-    Color turnColor = engine.currentPlayer == "X" ? theme.playerXColor : theme.playerOColor;
+    Color turnColor = engine.currentPlayer == "X" ? theme.xTurnColor : theme.oTurnColor;
 
     return Scaffold(
       body: Stack(children: [
@@ -698,7 +707,8 @@ class _GameScreenState extends State<GameScreen> {
             Expanded(child: Center(child: Padding(padding: const EdgeInsets.all(20), child: AspectRatio(aspectRatio: 1, child: Stack(children: [
               GridView.builder(physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 14, mainAxisSpacing: 14), itemCount: 9,
                 itemBuilder: (context, idx) {
-                  bool isActive = appState.analyzeMode ? true : (engine.activeMiniGrid == null || engine.activeMiniGrid == idx);
+                  // In Analyze mode, highlight NONE
+                  bool isActive = appState.analyzeMode ? false : (engine.activeMiniGrid == null || engine.activeMiniGrid == idx);
                   return MiniBoardWidget(subGridIdx: idx, isActive: isActive);
                 }),
               if (engine.winningLine != null) CustomPaint(size: Size.infinite, painter: WinningLinePainter(engine.winningLine!, engine.winner == "X" ? theme.playerXColor : theme.playerOColor)),
@@ -716,7 +726,7 @@ class _GameScreenState extends State<GameScreen> {
         // ULTIMATE WIN SCREEN OVERLAY
         if (engine.winner != null)
           Container(color: Colors.black.withOpacity(0.9), child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Text(engine.winner == "DRAW" ? "IT'S A DRAW!" : "ULTIMATE WINNER", style: TextStyle(color: theme.contrastColor, fontSize: 20, letterSpacing: 5, fontWeight: FontWeight.bold)),
+            Text(engine.winner == "DRAW" ? "IT'S A DRAW!" : "ULTIMATE WINNER", style: TextStyle(color: theme.titleColor, fontSize: 20, letterSpacing: 5, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
             if (engine.winner != "DRAW")
               Text(engine.winner == "X" ? appState.pXDisplay.toUpperCase() : appState.pODisplay.toUpperCase(), 
@@ -788,7 +798,7 @@ class MiniBoardWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: highlightColor ?? (isActive ? theme.background.withOpacity(0.8) : theme.background.withOpacity(0.2)),
         borderRadius: BorderRadius.circular(10),
-        border: isActive ? Border.all(color: theme.accentColor, width: 4) : Border.all(color: theme.titleColor.withOpacity(0.1), width: 1),
+        border: isActive ? Border.all(color: theme.gridHighlightColor, width: 4) : Border.all(color: theme.titleColor.withOpacity(0.1), width: 1),
       ),
       child: Stack(children: [
         GridView.builder(physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3), itemCount: 9,
@@ -801,8 +811,8 @@ class MiniBoardWidget extends StatelessWidget {
                   if (!appState.isLocalPlay && !appState.isBotPlay) Provider.of<NetworkManager>(context, listen: false).sendData({"type": "MOVE", "subGrid": subGridIdx, "square": sqIdx, "player": appState.myPlayerSymbol == "X" ? "X" : "O"});
                 } else appState.setDebug("GO TO GRID ${engine.activeMiniGrid != null ? engine.activeMiniGrid! + 1 : 'ANY'}");
               } else appState.setDebug("WAIT FOR OPPONENT");
-            }, child: Container(margin: const EdgeInsets.all(1), decoration: BoxDecoration(border: Border.all(color: appState.analyzeMode ? theme.gridColor.withOpacity(0.8) : theme.gridColor.withOpacity(0.4), width: 0.8)),
-                child: Center(child: Text(val, style: TextStyle(color: (val == "X" ? theme.playerXColor : theme.playerOColor).withOpacity(isActive ? 1.0 : 0.4), fontSize: 20, fontWeight: FontWeight.w900)))));
+            }, child: Container(margin: const EdgeInsets.all(1), decoration: BoxDecoration(border: Border.all(color: theme.gridColor, width: 0.8)),
+                child: Center(child: Text(val, style: TextStyle(color: (val == "X" ? theme.playerXColor : theme.playerOColor).withOpacity(isActive || appState.analyzeMode ? 1.0 : 0.4), fontSize: 20, fontWeight: FontWeight.w900)))));
           }),
         if (win != "" && appState.overlayMode == OverlayMode.bigSymbol) IgnorePointer(child: Center(child: Opacity(opacity: 0.5, child: Text(win, style: TextStyle(fontSize: 60, fontWeight: FontWeight.w900, color: win == "X" ? theme.playerXColor : theme.playerOColor))))),
       ]),
