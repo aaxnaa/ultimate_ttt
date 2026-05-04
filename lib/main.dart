@@ -23,9 +23,9 @@ enum HomeStage { welcome, modeSelect, localSetup, onlineChoice, onlineCreate, on
 enum OverlayMode { bigSymbol, highlight, none }
 
 class AppState extends ChangeNotifier {
-  ThemeType currentThemeType = ThemeType.midnight; // NEW DEFAULT
+  ThemeType currentThemeType = ThemeType.midnight;
   HomeStage currentStage = HomeStage.welcome;
-  OverlayMode overlayMode = OverlayMode.bigSymbol;
+  OverlayMode overlayMode = OverlayMode.highlight; // NEW BASELINE: Highlight (Color Shade)
   
   String myName = "";
   String playerXName = "";
@@ -33,11 +33,11 @@ class AppState extends ChangeNotifier {
   String? myPlayerSymbol;
   
   bool showScoreboard = true;
-  bool analyzeMode = false;
+  bool analyzeMode = false; // BASELINE: Off
   bool isLocalPlay = false;
   bool isBotPlay = false;
   BotDifficulty? botDifficulty;
-  String lastDebugMessage = "V2.7 READY";
+  String lastDebugMessage = "V2.7.1 READY";
 
   String get pXDisplay => playerXName.trim().isEmpty ? "Player X" : playerXName;
   String get pODisplay => playerOName.trim().isEmpty ? "Player O" : playerOName;
@@ -127,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [theme.secondaryBackground, theme.background], // Dark to Light
+            colors: [theme.secondaryBackground, theme.background],
           ),
         ),
         child: SafeArea(
@@ -142,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
-                child: Text("VERSION 2.7", style: TextStyle(color: theme.versionColor, fontSize: 10, letterSpacing: 1, fontWeight: FontWeight.bold)),
+                child: Text("VERSION 2.7.1", style: TextStyle(color: theme.versionColor, fontSize: 10, letterSpacing: 1, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -346,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 12),
           _settingRow(context, theme, "SCOREBOARD", appState.showScoreboard ? "ON" : "OFF", "Toggle the tiny map of all wins.", () => appState.toggleScoreboard()),
           const SizedBox(height: 12),
-          _settingRow(context, theme, "ANALYZE (EYE)", appState.analyzeMode ? "ON" : "OFF", "Turns off highlights for strategy.", () => appState.toggleAnalyzeMode()),
+          _settingRow(context, theme, "ANALYZE (EYE)", appState.analyzeMode ? "ON" : "OFF", "Hide active grid highlight for strategy.", () => appState.toggleAnalyzeMode()),
           const SizedBox(height: 12),
           _settingRow(context, theme, "LEARN RULES", "VIEW", "See the official rules of the game.", () => showTutorialDialog(context, theme)),
         ],
@@ -707,9 +707,10 @@ class _GameScreenState extends State<GameScreen> {
             Expanded(child: Center(child: Padding(padding: const EdgeInsets.all(20), child: AspectRatio(aspectRatio: 1, child: Stack(children: [
               GridView.builder(physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 14, mainAxisSpacing: 14), itemCount: 9,
                 itemBuilder: (context, idx) {
-                  // In Analyze mode, highlight NONE
-                  bool isActive = appState.analyzeMode ? false : (engine.activeMiniGrid == null || engine.activeMiniGrid == idx);
-                  return MiniBoardWidget(subGridIdx: idx, isActive: isActive);
+                  // V2.7.1 logic: Highlight NONE in Analyze mode. Subtle emphasis otherwise.
+                  bool isActuallyActive = (engine.activeMiniGrid == null || engine.activeMiniGrid == idx);
+                  bool showHighlight = !appState.analyzeMode && isActuallyActive;
+                  return MiniBoardWidget(subGridIdx: idx, showHighlight: showHighlight);
                 }),
               if (engine.winningLine != null) CustomPaint(size: Size.infinite, painter: WinningLinePainter(engine.winningLine!, engine.winner == "X" ? theme.playerXColor : theme.playerOColor)),
             ]))))),
@@ -779,8 +780,8 @@ class _GameScreenState extends State<GameScreen> {
 
 class MiniBoardWidget extends StatelessWidget {
   final int subGridIdx;
-  final bool isActive;
-  const MiniBoardWidget({super.key, required this.subGridIdx, required this.isActive});
+  final bool showHighlight;
+  const MiniBoardWidget({super.key, required this.subGridIdx, required this.showHighlight});
 
   @override
   Widget build(BuildContext context) {
@@ -789,16 +790,16 @@ class MiniBoardWidget extends StatelessWidget {
     final theme = GameTheme.getTheme(appState.currentThemeType);
     final win = engine.miniWins[subGridIdx];
 
-    Color? highlightColor;
+    Color? overlayColor;
     if (win != "" && appState.overlayMode == OverlayMode.highlight) {
-      highlightColor = (win == "X" ? theme.playerXColor : theme.playerOColor).withOpacity(0.15);
+      overlayColor = (win == "X" ? theme.playerXColor : theme.playerOColor).withOpacity(0.15);
     }
 
     return Container(
       decoration: BoxDecoration(
-        color: highlightColor ?? (isActive ? theme.background.withOpacity(0.8) : theme.background.withOpacity(0.2)),
+        color: overlayColor ?? theme.background.withOpacity(0.85),
         borderRadius: BorderRadius.circular(10),
-        border: isActive ? Border.all(color: theme.gridHighlightColor, width: 4) : Border.all(color: theme.titleColor.withOpacity(0.1), width: 1),
+        border: showHighlight ? Border.all(color: theme.gridHighlightColor, width: 4) : Border.all(color: theme.titleColor.withOpacity(0.1), width: 1),
       ),
       child: Stack(children: [
         GridView.builder(physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3), itemCount: 9,
@@ -812,7 +813,7 @@ class MiniBoardWidget extends StatelessWidget {
                 } else appState.setDebug("GO TO GRID ${engine.activeMiniGrid != null ? engine.activeMiniGrid! + 1 : 'ANY'}");
               } else appState.setDebug("WAIT FOR OPPONENT");
             }, child: Container(margin: const EdgeInsets.all(1), decoration: BoxDecoration(border: Border.all(color: theme.gridColor, width: 0.8)),
-                child: Center(child: Text(val, style: TextStyle(color: (val == "X" ? theme.playerXColor : theme.playerOColor).withOpacity(isActive || appState.analyzeMode ? 1.0 : 0.4), fontSize: 20, fontWeight: FontWeight.w900)))));
+                child: Center(child: Text(val, style: TextStyle(color: (val == "X" ? theme.playerXColor : theme.playerOColor), fontSize: 20, fontWeight: FontWeight.w900)))));
           }),
         if (win != "" && appState.overlayMode == OverlayMode.bigSymbol) IgnorePointer(child: Center(child: Opacity(opacity: 0.5, child: Text(win, style: TextStyle(fontSize: 60, fontWeight: FontWeight.w900, color: win == "X" ? theme.playerXColor : theme.playerOColor))))),
       ]),
@@ -855,7 +856,7 @@ class _AnimatedTutorialBoardState extends State<AnimatedTutorialBoard> with Sing
       return GridView.builder(physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 4, mainAxisSpacing: 4), itemCount: 9,
         itemBuilder: (context, macroIdx) {
           bool isTarget = phase >= 1 && macroIdx == 2;
-          return Container(decoration: BoxDecoration(color: isTarget ? widget.theme.accentColor.withOpacity(0.3) : Colors.white10, borderRadius: BorderRadius.circular(4)),
+          return Container(decoration: BoxDecoration(color: isTarget ? widget.theme.gridHighlightColor.withOpacity(0.3) : Colors.white10, borderRadius: BorderRadius.circular(4)),
             child: GridView.builder(physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3), itemCount: 9,
               itemBuilder: (context, miniIdx) {
                 bool isMove = phase >= 1 && macroIdx == 4 && miniIdx == 2;
