@@ -142,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
-                child: Text("VERSION 2.7.1", style: TextStyle(color: theme.versionColor, fontSize: 10, letterSpacing: 1, fontWeight: FontWeight.bold)),
+                child: Text("VERSION 2.7.2", style: TextStyle(color: theme.versionColor, fontSize: 10, letterSpacing: 1, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -795,11 +795,17 @@ class MiniBoardWidget extends StatelessWidget {
       overlayColor = (win == "X" ? theme.playerXColor : theme.playerOColor).withOpacity(0.15);
     }
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
       decoration: BoxDecoration(
         color: overlayColor ?? theme.background.withOpacity(0.85),
-        borderRadius: BorderRadius.circular(10),
-        border: showHighlight ? Border.all(color: theme.gridHighlightColor, width: 4) : Border.all(color: theme.titleColor.withOpacity(0.1), width: 1),
+        borderRadius: BorderRadius.circular(12),
+        border: showHighlight 
+          ? Border.all(color: theme.gridHighlightColor, width: 6) 
+          : Border.all(color: theme.titleColor.withOpacity(0.1), width: 1),
+        boxShadow: showHighlight ? [
+          BoxShadow(color: theme.gridHighlightColor.withOpacity(0.4), blurRadius: 15, spreadRadius: 2)
+        ] : [],
       ),
       child: Stack(children: [
         GridView.builder(physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3), itemCount: 9,
