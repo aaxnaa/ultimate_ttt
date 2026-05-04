@@ -37,7 +37,7 @@ class AppState extends ChangeNotifier {
   bool isLocalPlay = false;
   bool isBotPlay = false;
   BotDifficulty? botDifficulty;
-  String lastDebugMessage = "V2.5.1 SECURE";
+  String lastDebugMessage = "V2.5.2 SECURE";
 
   String get pXDisplay => playerXName.trim().isEmpty ? "Player X" : playerXName;
   String get pODisplay => playerOName.trim().isEmpty ? "Player O" : playerOName;
@@ -142,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
-                child: Text("VERSION 2.5.1", style: TextStyle(color: theme.titleColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1)),
+                child: Text("VERSION 2.5.2", style: TextStyle(color: theme.titleColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1)),
               ),
             ],
           ),
@@ -329,42 +329,43 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _settingsPreview(GameTheme theme) {
     final appState = context.watch<AppState>();
+    
+    String overlayDesc = "";
+    if (appState.overlayMode == OverlayMode.bigSymbol) overlayDesc = "BIG ICONS";
+    else if (appState.overlayMode == OverlayMode.highlight) overlayDesc = "COLOR SHADE";
+    else overlayDesc = "CLEAN VIEW";
+
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(15), border: Border.all(color: theme.titleColor.withOpacity(0.1))),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("GAME THEME", style: TextStyle(color: theme.titleColor, fontSize: 12, fontWeight: FontWeight.bold)),
-              GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(color: theme.titleColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                  child: Text(theme.name.toUpperCase(), style: TextStyle(color: theme.titleColor, fontSize: 10, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("OVERLAY MODE", style: TextStyle(color: theme.titleColor, fontSize: 12, fontWeight: FontWeight.bold)),
-              GestureDetector(
-                onTap: () => appState.toggleOverlayMode(),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(color: theme.titleColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                  child: Text(appState.overlayMode.name.toUpperCase(), style: TextStyle(color: theme.titleColor, fontSize: 10, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
-          ),
+          _settingRow(theme, "THEME", theme.name.toUpperCase(), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
+          const SizedBox(height: 12),
+          _settingRow(theme, "OVERLAY", overlayDesc, () => appState.toggleOverlayMode()),
+          const SizedBox(height: 12),
+          _settingRow(theme, "SCOREBOARD", appState.showScoreboard ? "ON" : "OFF", () => appState.toggleScoreboard()),
+          const SizedBox(height: 12),
+          _settingRow(theme, "ANALYZE (EYE)", appState.analyzeMode ? "ON" : "OFF", () => appState.toggleAnalyzeMode()),
         ],
       ),
+    );
+  }
+
+  Widget _settingRow(GameTheme theme, String label, String value, VoidCallback onTap) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(color: theme.titleColor, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(color: theme.titleColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+            child: Text(value, style: TextStyle(color: theme.titleColor, fontSize: 9, fontWeight: FontWeight.w900)),
+          ),
+        ),
+      ],
     );
   }
 
@@ -687,6 +688,7 @@ class _GameScreenState extends State<GameScreen> {
               Row(children: [
                 IconButton(onPressed: () => showTutorialDialog(context, theme), icon: Icon(Icons.help_outline, color: theme.titleColor)),
                 IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())), icon: Icon(Icons.palette_outlined, color: theme.titleColor)),
+                IconButton(onPressed: () => appState.toggleAnalyzeMode(), icon: Icon(appState.analyzeMode ? Icons.visibility : Icons.visibility_off, color: appState.analyzeMode ? theme.accentColor : theme.titleColor)),
                 IconButton(onPressed: () => appState.toggleOverlayMode(), icon: Icon(appState.overlayMode == OverlayMode.bigSymbol ? Icons.layers : (appState.overlayMode == OverlayMode.highlight ? Icons.square : Icons.layers_clear), color: theme.titleColor)),
                 IconButton(onPressed: () { if (appState.isLocalPlay || appState.isBotPlay) engine.reset(); else net.sendData({"type": "RESTART_REQUEST"}); }, icon: Icon(Icons.refresh, color: theme.titleColor)),
               ]),
