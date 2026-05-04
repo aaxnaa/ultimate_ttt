@@ -37,7 +37,7 @@ class AppState extends ChangeNotifier {
   bool isLocalPlay = false;
   bool isBotPlay = false;
   BotDifficulty? botDifficulty;
-  String lastDebugMessage = "V2.5.2 SECURE";
+  String lastDebugMessage = "V2.6 READY";
 
   String get pXDisplay => playerXName.trim().isEmpty ? "Player X" : playerXName;
   String get pODisplay => playerOName.trim().isEmpty ? "Player O" : playerOName;
@@ -142,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
-                child: Text("VERSION 2.5.2", style: TextStyle(color: theme.titleColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1)),
+                child: Text("VERSION 2.6", style: TextStyle(color: theme.titleColor.withOpacity(0.2), fontSize: 10, letterSpacing: 1)),
               ),
             ],
           ),
@@ -347,6 +347,8 @@ class _HomeScreenState extends State<HomeScreen> {
           _settingRow(theme, "SCOREBOARD", appState.showScoreboard ? "ON" : "OFF", () => appState.toggleScoreboard()),
           const SizedBox(height: 12),
           _settingRow(theme, "ANALYZE (EYE)", appState.analyzeMode ? "ON" : "OFF", () => appState.toggleAnalyzeMode()),
+          const SizedBox(height: 12),
+          _settingRow(theme, "LEARN RULES", "VIEW", () => showTutorialDialog(context, theme)),
         ],
       ),
     );
@@ -696,7 +698,7 @@ class _GameScreenState extends State<GameScreen> {
             Expanded(child: Center(child: Padding(padding: const EdgeInsets.all(20), child: AspectRatio(aspectRatio: 1, child: Stack(children: [
               GridView.builder(physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 14, mainAxisSpacing: 14), itemCount: 9,
                 itemBuilder: (context, idx) {
-                  bool isActive = appState.analyzeMode ? false : (engine.activeMiniGrid == null || engine.activeMiniGrid == idx);
+                  bool isActive = appState.analyzeMode ? true : (engine.activeMiniGrid == null || engine.activeMiniGrid == idx);
                   return MiniBoardWidget(subGridIdx: idx, isActive: isActive);
                 }),
               if (engine.winningLine != null) CustomPaint(size: Size.infinite, painter: WinningLinePainter(engine.winningLine!, engine.winner == "X" ? theme.playerXColor : theme.playerOColor)),
@@ -786,7 +788,7 @@ class MiniBoardWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: highlightColor ?? (isActive ? theme.background.withOpacity(0.8) : theme.background.withOpacity(0.2)),
         borderRadius: BorderRadius.circular(10),
-        border: isActive ? Border.all(color: theme.accentColor, width: 4) : Border.all(color: theme.gridColor.withOpacity(0.3), width: 1),
+        border: isActive ? Border.all(color: theme.accentColor, width: 4) : Border.all(color: theme.titleColor.withOpacity(0.1), width: 1),
       ),
       child: Stack(children: [
         GridView.builder(physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3), itemCount: 9,
@@ -799,7 +801,7 @@ class MiniBoardWidget extends StatelessWidget {
                   if (!appState.isLocalPlay && !appState.isBotPlay) Provider.of<NetworkManager>(context, listen: false).sendData({"type": "MOVE", "subGrid": subGridIdx, "square": sqIdx, "player": appState.myPlayerSymbol == "X" ? "X" : "O"});
                 } else appState.setDebug("GO TO GRID ${engine.activeMiniGrid != null ? engine.activeMiniGrid! + 1 : 'ANY'}");
               } else appState.setDebug("WAIT FOR OPPONENT");
-            }, child: Container(margin: const EdgeInsets.all(1), decoration: BoxDecoration(border: Border.all(color: theme.gridColor.withOpacity(0.2), width: 0.5)),
+            }, child: Container(margin: const EdgeInsets.all(1), decoration: BoxDecoration(border: Border.all(color: appState.analyzeMode ? theme.gridColor.withOpacity(0.8) : theme.gridColor.withOpacity(0.4), width: 0.8)),
                 child: Center(child: Text(val, style: TextStyle(color: (val == "X" ? theme.playerXColor : theme.playerOColor).withOpacity(isActive ? 1.0 : 0.4), fontSize: 20, fontWeight: FontWeight.w900)))));
           }),
         if (win != "" && appState.overlayMode == OverlayMode.bigSymbol) IgnorePointer(child: Center(child: Opacity(opacity: 0.5, child: Text(win, style: TextStyle(fontSize: 60, fontWeight: FontWeight.w900, color: win == "X" ? theme.playerXColor : theme.playerOColor))))),
